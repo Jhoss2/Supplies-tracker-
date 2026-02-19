@@ -1285,10 +1285,12 @@ const AddMaterialScreen = () => {
 };
 
 const IdentityDatabaseScreen = () => {
+  // On extrait bien removeIdentity du contexte ici
   const { identities, removeIdentity, setCurrentScreen } = useAppContext();
 
   const handleDelete = (id) => {
-    if (confirm('Etes-vous sur de vouloir supprimer cette photo ?')) {
+    // AJOUT DE window. devant confirm pour valider le build
+    if (window.confirm('Etes-vous sur de vouloir supprimer cette photo ?')) {
       removeIdentity(id);
     }
   };
