@@ -1068,10 +1068,60 @@ const MaterialListScreen = () => {
   };
 
   const handleDelete = (id) => {
-    // On ajoute 'window.' pour que le compilateur sache que c'est la fonction du navigateur
-    if (window.confirm('Etes-vous sur de vouloir supprimer cette photo ?')) {
-      removeIdentity(id);
+    // 1. On utilise window.confirm pour ESLint (Codemagic)
+    // 2. On utilise removeMaterial (et non removeIdentity) car on est dans la liste du matériel
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce matériel ?')) {
+      removeMaterial(id);
     }
+  };
+
+  return (
+    <div style={{ width: '100%', height: '100vh', backgroundColor: THEME.black, color: 'white', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <button
+        onClick={() => setCurrentScreen('settings')}
+        style={{ position: 'absolute', top: '24px', left: '24px', zIndex: 40, padding: '8px', background: 'none', border: 'none', color: '#999999', cursor: 'pointer' }}
+      >
+        <ArrowLeft size={50} strokeWidth={4} />
+      </button>
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: '16px', padding: '48px 16px', overflowY: 'auto' }}>
+        <h1 style={{ background: 'linear-gradient(to right, #DC2626, #000000)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontSize: '32px', fontFamily: "'Arial Black', 'Arial Bold', Gadget, sans-serif", fontStyle: 'italic', fontWeight: 900, marginBottom: '24px' }}>
+          LISTE MATÉRIEL ADMIN
+        </h1>
+
+        <div style={{ width: '100%', maxWidth: '800px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {materials.map((m) => (
+            <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px', border: '1px solid #444' }}>
+              <div style={{ width: '60px', height: '60px', backgroundColor: '#333', borderRadius: '4px', overflow: 'hidden' }}>
+                {m.image && <img src={m.image} alt={m.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+              </div>
+              
+              {editingId === m.id ? (
+                <input 
+                  value={editName} 
+                  onChange={(e) => setEditName(e.target.value.toUpperCase())}
+                  style={{ flex: 1, padding: '8px', backgroundColor: '#333', color: 'white', border: '1px solid white' }}
+                />
+              ) : (
+                <p style={{ flex: 1, fontFamily: "'Arial Black', 'Arial Bold', Gadget, sans-serif", fontStyle: 'italic' }}>{m.name}</p>
+              )}
+
+              <div style={{ display: 'flex', gap: '12px' }}>
+                {editingId === m.id ? (
+                  <button onClick={() => handleSaveEdit(m.id)} style={{ color: '#4ADE80', background: 'none', border: 'none', cursor: 'pointer' }}>OK</button>
+                ) : (
+                  <button onClick={() => handleEdit(m.id, m.name)} style={{ color: '#999', background: 'none', border: 'none', cursor: 'pointer' }}><Edit size={20} /></button>
+                )}
+                <button onClick={() => handleDelete(m.id)} style={{ color: '#DC2626', background: 'none', border: 'none', cursor: 'pointer' }}>
+                  <Trash2 size={24} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 };
 
   return (
