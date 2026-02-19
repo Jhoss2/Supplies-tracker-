@@ -2,15 +2,26 @@ workflows:
   android-apk:
     name: Build Android APK
     instance_type: mac_mini_m1
+    max_build_duration: 60
+    environment:
+      node: 20.x
+      java: 17
     scripts:
-      - name: Set up Node.js
-        script: | 
-          brew install node@20
-          brew link --overwrite node@20
-      - name: Install dependencies
+      - name: Generate React Native Structure
+        script: |
+          # On crée un projet temporaire pour récupérer le dossier android
+          npx react-native init TempApp --version 0.72.6 --skip-install
+          cp -r TempApp/android .
+          cp TempApp/metro.config.js .
+          cp TempApp/index.js .
+          # On donne les droits au moteur de build
+          chmod +x android/gradlew
+      - name: Install Dependencies
         script: |
           npm install
-      - name: Build Android APK
+          # On installe manuellement les libs nécessaires
+          npm install react-native-sqlite-storage lucide-react-native react-native-svg react-native-linear-gradient react-native-image-picker react-native-signature-canvas react-native-webview
+      - name: Build APK
         script: |
           cd android && ./gradlew assembleRelease
     artifacts:
@@ -18,4 +29,4 @@ workflows:
     publishing:
       email:
         recipients:
-          - votre-email@exemple.com
+          - ton-email@ici.com
