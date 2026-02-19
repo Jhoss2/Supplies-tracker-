@@ -5,8 +5,6 @@ workflows:
     max_build_duration: 60
     environment:
       node: latest
-      vars:
-        CI: "false"
     triggering:
       events:
         - push
@@ -19,7 +17,8 @@ workflows:
           npm install
       - name: Build React App
         script: |
-          npm run build
+          # On force le CI=false directement dans la commande
+          CI=false npm run build
     artifacts:
       - build/**
     publishing:
