@@ -1,9 +1,12 @@
 workflows:
   react-web-workflow:
     name: React Web Build
+    instance_type: mac_mini_m1
     max_build_duration: 60
     environment:
       node: latest
+      vars:
+        CI: "false"
     triggering:
       events:
         - push
@@ -23,4 +26,4 @@ workflows:
       email:
         recipients:
           - votre-email@exemple.com
-
+          
