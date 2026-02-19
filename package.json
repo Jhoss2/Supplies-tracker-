@@ -16,5 +16,11 @@
     "react-native-image-picker": "^7.1.2",
     "react-native-signature-canvas": "^4.7.2",
     "react-native-webview": "^13.6.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@babel/runtime": "^7.20.0",
+    "@react-native/metro-config": "^0.72.11",
+    "metro-react-native-babel-preset": "0.76.8"
   }
 }
