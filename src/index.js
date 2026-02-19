@@ -1061,7 +1061,7 @@ const MaterialListScreen = () => {
 
   const handleSaveEdit = (id) => {
     if (editName.trim()) {
-      updateMaterial(id, { name: editName });
+      updateMaterial(id, { name: editName.toUpperCase() });
       setEditingId(null);
       setEditName('');
     }
@@ -1087,49 +1087,9 @@ const MaterialListScreen = () => {
           LISTE MATÉRIEL ADMIN
         </h1>
 
-        <div style={{ width: '100%', maxWidth: '800px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {materials.map((m) => (
-            <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px', border: '1px solid #444' }}>
-              <div style={{ width: '60px', height: '60px', backgroundColor: '#333', borderRadius: '4px', overflow: 'hidden' }}>
-                {m.image && <img src={m.image} alt={m.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-              </div>
-              
-              {editingId === m.id ? (
-                <input 
-                  value={editName} 
-                  onChange={(e) => setEditName(e.target.value.toUpperCase())}
-                  style={{ flex: 1, padding: '8px', backgroundColor: '#33', color: 'white', border: '1px solid white' }}
-                />
-              ) : (
-                <p style={{ flex: 1, fontFamily: "'Arial Black', 'Arial Bold', Gadget, sans-serif", fontStyle: 'italic' }}>{m.name}</p>
-              )}
-
-              <div style={{ display: 'flex', gap: '12px' }}>
-                {editingId === m.id ? (
-                  <button onClick={() => handleSaveEdit(m.id)} style={{ color: '#4ADE80', background: 'none', border: 'none', cursor: 'pointer' }}>OK</button>
-                ) : (
-                  <button onClick={() => handleEdit(m.id, m.name)} style={{ color: '#999', background: 'none', border: 'none', cursor: 'pointer' }}><Edit size={20} /></button>
-                )}
-                <button onClick={() => handleDelete(m.id)} style={{ color: '#DC2626', background: 'none', border: 'none', cursor: 'pointer' }}>
-                  <Trash2 size={24} />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: '16px', padding: '48px 16px', overflowY: 'auto' }}>
-        <h1 style={{ background: 'linear-gradient(to right, #DC2626, #000000)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontSize: '32px', fontFamily: "'Arial Black', 'Arial Bold', Gadget, sans-serif", fontStyle: 'italic', fontWeight: 900, marginBottom: '16px' }}>
-          LISTE DU MATÉRIEL
-        </h1>
-
         {materials.length === 0 ? (
           <div style={{ textAlign: 'center', color: '#999999', paddingTop: '48px' }}>
-            <p style={{ fontSize: '18px', fontFamily: "'Arial Black', 'Arial Bold', Gadget, sans-serif", fontStyle: 'italic' }}>Aucun materiel enregistre</p>
+            <p style={{ fontSize: '18px', fontFamily: "'Arial Black', sans-serif", fontStyle: 'italic' }}>Aucun materiel enregistre</p>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px', width: '100%', maxWidth: '1000px' }}>
