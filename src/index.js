@@ -1068,10 +1068,11 @@ const MaterialListScreen = () => {
   };
 
   const handleDelete = (id) => {
-    if (confirm('Etes-vous sur de vouloir supprimer ce materiel ?')) {
-      removeMaterial(id);
+    // On ajoute 'window.' pour que le compilateur sache que c'est la fonction du navigateur
+    if (window.confirm('Etes-vous sur de vouloir supprimer cette photo ?')) {
+      removeIdentity(id);
     }
-  };
+};
 
   return (
     <div style={{ width: '100%', height: '100vh', backgroundColor: THEME.black, color: 'white', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -1501,11 +1502,11 @@ const MaterialListAdminScreen = () => {
   };
 
   const handleDelete = (id) => {
-    if (confirm('Etes-vous sur de vouloir supprimer ce materiel ?')) {
-      removeMaterial(id);
-    }
-  };
-
+  // AVANT : if (confirm("Voulez-vous vraiment supprimer ce matériel ?")) {
+  if (window.confirm("Voulez-vous vraiment supprimer ce matériel ?")) {
+    removeMaterial(id);
+  }
+};
   return (
     <div style={{ width: '100%', height: '100vh', backgroundColor: THEME.black, color: 'white', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <button
