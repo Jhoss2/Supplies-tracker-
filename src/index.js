@@ -1068,8 +1068,6 @@ const MaterialListScreen = () => {
   };
 
   const handleDelete = (id) => {
-    // 1. On utilise window.confirm pour ESLint (Codemagic)
-    // 2. On utilise removeMaterial (et non removeIdentity) car on est dans la liste du matériel
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce matériel ?')) {
       removeMaterial(id);
     }
@@ -1100,7 +1098,7 @@ const MaterialListScreen = () => {
                 <input 
                   value={editName} 
                   onChange={(e) => setEditName(e.target.value.toUpperCase())}
-                  style={{ flex: 1, padding: '8px', backgroundColor: '#333', color: 'white', border: '1px solid white' }}
+                  style={{ flex: 1, padding: '8px', backgroundColor: '#33', color: 'white', border: '1px solid white' }}
                 />
               ) : (
                 <p style={{ flex: 1, fontFamily: "'Arial Black', 'Arial Bold', Gadget, sans-serif", fontStyle: 'italic' }}>{m.name}</p>
@@ -1123,15 +1121,6 @@ const MaterialListScreen = () => {
     </div>
   );
 };
-
-  return (
-    <div style={{ width: '100%', height: '100vh', backgroundColor: THEME.black, color: 'white', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <button
-        onClick={() => setCurrentScreen('room')}
-        style={{ position: 'absolute', top: '24px', left: '24px', zIndex: 40, padding: '8px', background: 'none', border: 'none', color: '#999999', cursor: 'pointer' }}
-      >
-        <ArrowLeft size={50} strokeWidth={4} />
-      </button>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: '16px', padding: '48px 16px', overflowY: 'auto' }}>
         <h1 style={{ background: 'linear-gradient(to right, #DC2626, #000000)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontSize: '32px', fontFamily: "'Arial Black', 'Arial Bold', Gadget, sans-serif", fontStyle: 'italic', fontWeight: 900, marginBottom: '16px' }}>
