@@ -4,11 +4,29 @@ workflows:
     instance_type: mac_mini_m1
     max_build_duration: 60
     scripts:
-      - name: Initialize Project
+      - name: Force Android Structure
         script: |
+          # 1. Créer les dossiers de base
+          mkdir -p android/app/src/main/java/com/suppliestracker
+          mkdir -p android/gradle/wrapper
+          
+          # 2. Installer React Native localement pour avoir les outils
           npm install
-          npx react-native init TempApp --version 0.72.6 --skip-install
-          cp -r TempApp/android .
+          
+          # 3. Utiliser une commande plus simple pour éjecter la structure
+          npx react-native-asset || true
+          
+          # 4. Tenter une création légère des fichiers gradle
+          printf "distributionBase=GRADLE_USER_HOME\ndistributionPath=wrapper/dists\nzipStoreBase=GRADLE_USER_HOME\nzipStorePath=wrapper/dists\ndistributionUrl=https\://services.gradle.org/distributions/gradle-8.0.2-all.zip" > android/gradle/wrapper/gradle-wrapper.properties
+          
+          # 5. Si le dossier android n'est toujours pas là, on utilise un squelette pré-existant
+          if [ ! -f "android/gradlew" ]; then
+            echo "Récupération du squelette Android..."
+            git clone https://github.com/facebook/react-native.git temp-rn
+            cp -r temp-rn/template/android .
+            rm -rf temp-rn
+          fi
+          
           chmod +x android/gradlew
       - name: Build APK
         script: |
@@ -19,3 +37,4 @@ workflows:
       email:
         recipients:
           - ton-email@ici.com
+          
