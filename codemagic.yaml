@@ -6,27 +6,56 @@ workflows:
     scripts:
       - name: Setup Project Structure
         script: |
-          # 1. Préparation du code
+          # 1. Préparation du code JS
           cp "App (1).js" App.js || true
           
-          # 2. Installation forcée (On s'assure que le dossier existe)
+          # 2. Installation propre des dépendances
           npm install --quiet
           
-          # 3. Création de la structure Android
+          # 3. Création de l'arborescence Android standard
+          mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/drawable
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/assets
           
-          # 4. Copie de tes fichiers Gradle
-          cp settings.gradle.txt android/settings.gradle || true
-          cp build.gradle.txt android/build.gradle || true
-          cp "build.gradle (1).txt" android/app/build.gradle || true
+          # 4. Génération d'un settings.gradle robuste
+          cat <<EOF > android/settings.gradle
+          rootProject.name = 'SuppliesTracker'
+          apply from: file("../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesSettingsGradle(settings)
+          include ':app'
+          EOF
 
-          # 5. RE-LIAGE MANUEL (La solution à ton erreur)
-          # On crée physiquement le fichier manquant s'il n'est pas trouvé par Gradle
-          # pour forcer le passage de l'étape de configuration
-          mkdir -p node_modules/@react-native-community/cli-platform-android
-          cp node_modules/react-native/scripts/native_modules.gradle node_modules/@react-native-community/cli-platform-android/ || true
+          # 5. Génération d'un build.gradle (root) propre
+          cat <<EOF > android/build.gradle
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath("com.android.tools.build:gradle:8.0.2") }
+          }
+          allprojects { repositories { google(); mavenCentral() } }
+          EOF
+
+          # 6. Génération d'un build.gradle (app) compatible React Native 0.72
+          cat <<EOF > android/app/build.gradle
+          apply plugin: "com.android.application"
+          apply plugin: "com.facebook.react"
+
+          android {
+              namespace "com.suppliestracker"
+              compileSdkVersion 33
+              defaultConfig {
+                  applicationId "com.suppliestracker"
+                  minSdkVersion 21
+                  targetSdkVersion 33
+                  versionCode 1
+                  versionName "1.0"
+              }
+          }
+          
+          dependencies {
+              implementation("com.facebook.react:react-android")
+          }
+          apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesAppBuildGradle(project)
+          EOF
 
       - name: Bundle JavaScript
         script: |
@@ -40,11 +69,8 @@ workflows:
       - name: Build APK
         script: |
           cd android
-          # On génère le wrapper AVANT de lancer quoi que ce soit
           gradle wrapper --gradle-version 8.0.2
           chmod +x gradlew
-          
-          # On nettoie et on build
           export GRADLE_OPTS="-Xmx2048m -Xss4m"
           ./gradlew assembleDebug --no-daemon
           
