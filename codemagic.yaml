@@ -9,33 +9,32 @@ workflows:
           cp "App (1).js" App.js || true
           npm install --quiet
           
-          # 1. Création de l'arborescence Java complète
+          # 1. Structure Java
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/drawable
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/assets
           
-          # 2. CRÉATION DU FICHIER JAVA (Étape manquante précédemment)
+          # 2. MainActivity.java
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainActivity.java
           package com.suppliestracker;
           import com.facebook.react.ReactActivity;
           public class MainActivity extends ReactActivity {
             @Override
-            protected String getMainComponentName() {
-              return "SuppliesTracker";
-            }
+            protected String getMainComponentName() { return "SuppliesTracker"; }
           }
           EOF
 
-          # 3. Création du fichier MainApplication.java
+          # 3. MainApplication.java (Version simplifiée sans PackageList pour éviter les erreurs)
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainApplication.java
           package com.suppliestracker;
           import android.app.Application;
-          import com.facebook.react.PackageList;
           import com.facebook.react.ReactApplication;
           import com.facebook.react.ReactNativeHost;
           import com.facebook.react.ReactPackage;
+          import com.facebook.react.shell.MainReactPackage;
           import com.facebook.soloader.SoLoader;
+          import java.util.Arrays;
           import java.util.List;
           public class MainApplication extends Application implements ReactApplication {
             private final ReactNativeHost mReactNativeHost = new ReactNativeHost(this) {
@@ -43,7 +42,7 @@ workflows:
               public boolean getUseDeveloperSupport() { return false; }
               @Override
               protected List<ReactPackage> getPackages() {
-                return new PackageList(this).getPackages();
+                return Arrays.<ReactPackage>asList(new MainReactPackage());
               }
               @Override
               protected String getJSMainModuleName() { return "index"; }
@@ -51,19 +50,17 @@ workflows:
             @Override
             public ReactNativeHost getReactNativeHost() { return mReactNativeHost; }
             @Override
-            public void onCreate() {
-              super.onCreate();
-              SoLoader.init(this, false);
-            }
+            public void onCreate() { super.onCreate(); SoLoader.init(this, false); }
           }
           EOF
 
-          # 4. Fichiers Gradle et Manifest
+          # 4. Settings.gradle (Fixing the path error once and for all)
           cat <<EOF > android/settings.gradle
           rootProject.name = 'SuppliesTracker'
           include ':app'
           EOF
 
+          # 5. Build.gradle (Root)
           cat <<EOF > android/build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -78,6 +75,7 @@ workflows:
           }
           EOF
 
+          # 6. Build.gradle (App) - On ajoute les dépendances natives manuellement
           cat <<EOF > android/app/build.gradle
           apply plugin: "com.android.application"
           android {
@@ -97,13 +95,15 @@ workflows:
           }
           EOF
 
+          # 7. AndroidManifest.xml
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
+              <uses-permission android:name="android.permission.INTERNET" />
               <application android:name=".MainApplication" android:label="SuppliesTracker" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
+                          <category android:name="android.intent.category.LAUNCHer" />
                       </intent-filter>
                   </activity>
               </application>
@@ -112,10 +112,7 @@ workflows:
 
       - name: Bundle JavaScript
         script: |
-          npx react-native bundle \
-            --platform android \
-            --dev false \
-            --entry-file index.js \
+          npx react-native bundle --platform android --dev false --entry-file index.js \
             --bundle-output android/app/src/main/assets/index.android.bundle \
             --assets-dest android/app/src/main/res
 
