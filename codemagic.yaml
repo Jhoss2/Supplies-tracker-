@@ -6,24 +6,26 @@ workflows:
     scripts:
       - name: Setup Project Structure
         script: |
-          # 1. Préparation du code source
-          cp "App (1).js" App.js || true
+          # 1. Sauvegarde de votre code précieux
+          cp "App (1).js" ../App.backup.js || true
+          cp index.js ../index.backup.js || true
           
-          # 2. Nettoyage total (essentiel sur Codemagic)
-          rm -rf android node_modules package-lock.json
+          # 2. Nettoyage total du répertoire de travail
+          rm -rf *
           
-          # 3. Génération du projet natif
-          # On installe le CLI d'abord
-          npm install @react-native-community/cli-platform-android --save-dev
-          
-          # Initialisation sans l'option --force pour éviter l'erreur
+          # 3. Création du projet dans le dossier courant (vide maintenant)
+          # On ne met pas de nom de projet pour forcer l'init ici
           npx react-native@0.72.6 init SuppliesTracker --version 0.72.6 --skip-install --npm --directory .
           
-          # 4. Installation des modules
-          npm install
+          # 4. Restauration de votre code par-dessus le template
+          mv ../App.backup.js App.js
+          mv ../index.backup.js index.js
           
-          # 5. Création du Gradle Wrapper (si manquant)
-          if [ ! -d "android" ]; then echo "ERREUR: Dossier android non créé"; exit 1; fi
+          # 5. Installation des dépendances spécifiques
+          npm install
+          npm install react-native-sqlite-storage lucide-react-native react-native-svg react-native-linear-gradient react-native-image-picker react-native-signature-canvas react-native-webview
+          
+          # 6. Génération du moteur Gradle
           cd android && gradle wrapper --gradle-version 8.0.2 && cd ..
 
       - name: Bundle JavaScript
@@ -40,7 +42,6 @@ workflows:
         script: |
           cd android
           chmod +x gradlew
-          # Paramètres de mémoire pour éviter le StackOverflow
           export GRADLE_OPTS="-Xmx2048m -Xss4m"
           ./gradlew assembleDebug --no-daemon
           
