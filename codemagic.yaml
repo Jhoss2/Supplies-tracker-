@@ -10,16 +10,25 @@ workflows:
           cp "App (1).js" App.js || true
           npm install --quiet
 
-          # Création de l'arborescence Java correcte
+          # Création de la structure complète
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/values
+          mkdir -p android/app/src/main/res/drawable
           mkdir -p android/app/src/main/assets
 
-          # 1. Fichier Settings
+          # 1. Styles Android (CRUCIAL pour le thème AppCompat)
+          cat <<EOF > android/app/src/main/res/values/styles.xml
+          <resources>
+              <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+              </style>
+          </resources>
+          EOF
+
+          # 2. Fichier Settings
           echo "rootProject.name = 'SuppliesTracker'" > android/settings.gradle
           echo "include ':app'" >> android/settings.gradle
 
-          # 2. Build.gradle (Root)
+          # 3. Build.gradle (Root)
           cat <<EOF > android/build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -34,7 +43,7 @@ workflows:
           }
           EOF
 
-          # 3. Build.gradle (App)
+          # 4. Build.gradle (App)
           cat <<EOF > android/app/build.gradle
           apply plugin: "com.android.application"
           android {
@@ -47,21 +56,25 @@ workflows:
                   versionCode 1
                   versionName "1.0"
               }
+              buildTypes {
+                  release { minifyEnabled false }
+              }
           }
           dependencies {
               implementation "com.facebook.react:react-android:0.72.6"
               implementation "com.facebook.react:hermes-android:0.72.6"
+              implementation "androidx.appcompat:appcompat:1.4.1"
           }
           EOF
 
-          # 4. AndroidManifest.xml (Ajout de MainApplication)
+          # 5. AndroidManifest.xml
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
               <uses-permission android:name="android.permission.INTERNET" />
               <application 
                   android:name=".MainApplication"
                   android:label="SuppliesTracker" 
-                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                  android:theme="@style/AppTheme">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -72,7 +85,7 @@ workflows:
           </manifest>
           EOF
 
-          # 5. MainActivity.java
+          # 6. MainActivity.java
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainActivity.java
           package com.suppliestracker;
           import com.facebook.react.ReactActivity;
@@ -82,7 +95,7 @@ workflows:
           }
           EOF
 
-          # 6. MainApplication.java (CRUCIAL)
+          # 7. MainApplication.java
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainApplication.java
           package com.suppliestracker;
           import android.app.Application;
@@ -98,19 +111,14 @@ workflows:
               @Override
               public boolean getUseDeveloperSupport() { return false; }
               @Override
-              protected List<ReactPackage> getPackages() {
-                return Arrays.<ReactPackage>asList(new MainReactPackage());
-              }
+              protected List<ReactPackage> getPackages() { return Arrays.<ReactPackage>asList(new MainReactPackage()); }
               @Override
               protected String getJSMainModuleName() { return "index"; }
             };
             @Override
             public ReactNativeHost getReactNativeHost() { return mReactNativeHost; }
             @Override
-            public void onCreate() {
-              super.onCreate();
-              SoLoader.init(this, false);
-            }
+            public void onCreate() { super.onCreate(); SoLoader.init(this, false); }
           }
           EOF
 
