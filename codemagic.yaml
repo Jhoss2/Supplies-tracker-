@@ -7,40 +7,35 @@ workflows:
       - name: Install dependencies
         script: |
           npm install
-          # Installation forcée des modules de configuration
           npm install @react-native/metro-config metro-react-native-babel-preset --save-dev
           npm install react-native-sqlite-storage lucide-react-native react-native-svg react-native-linear-gradient react-native-image-picker react-native-signature-canvas react-native-webview
-      - name: Setup Android Structure & Identity
+      - name: Setup Android Structure
         script: |
-          # Création du fichier d'identité de l'app
-          cat <<EOF > app.json
-          {
-            "name": "SuppliesTracker",
-            "displayName": "Supplies Tracker"
-          }
-          EOF
+          # Création du fichier d'identité
+          echo '{"name": "SuppliesTracker","displayName": "Supplies Tracker"}' > app.json
           
           cd android
           mkdir -p app/src/main/java/com/suppliestracker
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/assets
-          
-          # MainActivity Java
+          mkdir -p gradle/wrapper
+
+          # Téléchargement du moteur complet de Gradle
+          curl -L https://raw.githubusercontent.com/gradle/gradle/v8.0.2/gradlew -o gradlew
+          curl -L https://raw.githubusercontent.com/gradle/gradle/v8.0.2/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
+          printf "distributionBase=GRADLE_USER_HOME\ndistributionPath=wrapper/dists\nzipStoreBase=GRADLE_USER_HOME\nzipStorePath=wrapper/dists\ndistributionUrl=https\://services.gradle.org/distributions/gradle-8.0.2-all.zip" > gradle/wrapper/gradle-wrapper.properties
+          chmod +x gradlew
+
+          # Fichiers Java et Manifest
           cat <<EOF > app/src/main/java/com/suppliestracker/MainActivity.java
           package com.suppliestracker;
           import com.facebook.react.ReactActivity;
           public class MainActivity extends ReactActivity {
             @Override
-            protected String getMainComponentName() {
-              return "SuppliesTracker";
-            }
+            protected String getMainComponentName() { return "SuppliesTracker"; }
           }
           EOF
-
-          # Thème & Manifest
-          cat <<EOF > app/src/main/res/values/styles.xml
-          <resources><style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar"></style></resources>
-          EOF
+          echo '<resources><style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar"></style></resources>' > app/src/main/res/values/styles.xml
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
               <application android:label="Supplies Tracker" android:theme="@style/AppTheme">
@@ -54,13 +49,10 @@ workflows:
           EOF
       - name: Bundle JavaScript (The Offline Core)
         script: |
-          # Création du pack binaire offline
           npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
       - name: Build APK
         script: |
           cd android
-          curl -L https://raw.githubusercontent.com/gradle/gradle/v8.0.2/gradlew -o gradlew
-          chmod +x gradlew
           ./gradlew assembleDebug
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
