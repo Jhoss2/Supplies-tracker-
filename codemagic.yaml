@@ -4,73 +4,33 @@ workflows:
     instance_type: mac_mini_m1
     max_build_duration: 60
     scripts:
-      - name: Install dependencies
+      - name: Setup React Native Project
         script: |
-          npm install
-          npm install @react-native/metro-config metro-react-native-babel-preset --save-dev
-      - name: Setup Android Structure
-        script: |
-          echo '{"name": "SuppliesTracker","displayName": "Supplies Tracker"}' > app.json
-          cd android
-          mkdir -p app/src/main/java/com/suppliestracker app/src/main/res/values app/src/main/assets gradle/wrapper
-
-          # Setup Gradle Wrapper
-          curl -L https://raw.githubusercontent.com/gradle/gradle/v8.0.2/gradlew -o gradlew
-          curl -L https://raw.githubusercontent.com/gradle/gradle/v8.0.2/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
-          printf "distributionBase=GRADLE_USER_HOME\ndistributionPath=wrapper/dists\nzipStoreBase=GRADLE_USER_HOME\nzipStorePath=wrapper/dists\ndistributionUrl=https\://services.gradle.org/distributions/gradle-8.0.2-all.zip" > gradle/wrapper/gradle-wrapper.properties
-          chmod +x gradlew
-
-          # 1. MainApplication.java (Le cœur de l'app)
-          cat <<EOF > app/src/main/java/com/suppliestracker/MainApplication.java
-          package com.suppliestracker;
-          import android.app.Application;
-          import com.facebook.react.PackageList;
-          import com.facebook.react.ReactApplication;
-          import com.facebook.react.ReactNativeHost;
-          import com.facebook.react.ReactPackage;
-          import com.facebook.soloader.SoLoader;
-          import java.util.List;
-          public class MainApplication extends Application implements ReactApplication {
-            private final ReactNativeHost mReactNativeHost = new ReactNativeHost(this) {
-              @Override public boolean getUseDeveloperSupport() { return false; }
-              @Override protected List<ReactPackage> getPackages() {
-                return new PackageList(this).getPackages();
-              }
-              @Override protected String getJSMainModuleName() { return "index"; }
-            };
-            @Override public ReactNativeHost getReactNativeHost() { return mReactNativeHost; }
-            @Override public void onCreate() { super.onCreate(); SoLoader.init(this, false); }
-          }
-          EOF
-
-          # 2. MainActivity.java
-          cat <<EOF > app/src/main/java/com/suppliestracker/MainActivity.java
-          package com.suppliestracker;
-          import com.facebook.react.ReactActivity;
-          public class MainActivity extends ReactActivity {
-            @Override protected String getMainComponentName() { return "SuppliesTracker"; }
-          }
-          EOF
+          # 1. Sauvegarde de ton code
+          cp App.js ../App.js.backup
           
-          # 3. Thème & Manifest
-          echo '<resources><style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar"></style></resources>' > app/src/main/res/values/styles.xml
-          cat <<EOF > app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
-              <application android:name=".MainApplication" android:label="Supplies Tracker" android:theme="@style/AppTheme">
-                  <activity android:name=".MainActivity" android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-      - name: Bundle JavaScript (The Offline Core)
+          # 2. On vide tout pour repartir sur une base saine
+          rm -rf *
+          
+          # 3. On crée un vrai projet React Native complet (version 0.72.6)
+          # Cela va créer TOUS les fichiers Java et Gradle correctement
+          npx react-native@0.72.6 init SuppliesTracker --version 0.72.6 --skip-install --npm --directory .
+          
+          # 4. On remet ton code métier (Offline)
+          mv ../App.js.backup App.js
+          
+          # 5. On installe les dépendances
+          npm install
+          npm install react-native-sqlite-storage lucide-react-native react-native-svg react-native-linear-gradient react-native-image-picker react-native-signature-canvas react-native-webview
+      - name: Bundle JavaScript
         script: |
+          # On prépare le pack pour le mode sans internet
+          mkdir -p android/app/src/main/assets
           npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
       - name: Build APK
         script: |
           cd android
+          chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
