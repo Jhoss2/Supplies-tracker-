@@ -6,35 +6,47 @@ workflows:
     scripts:
       - name: Setup React Native Project
         script: |
-          # 1. Sauvegarde de ton code
-          cp App.js ../App.js.backup
+          # 1. Sauvegarde de votre fichier App (1).js vers App.js
+          cp "App (1).js" App.js
           
-          # 2. On vide tout pour repartir sur une base saine
-          rm -rf *
+          # 2. Nettoyage et Installation forcée du CLI
+          # On installe les outils de commande AVANT toute autre opération
+          npm install @react-native-community/cli @react-native-community/cli-platform-android --save-dev
           
-          # 3. On crée un vrai projet React Native complet (version 0.72.6)
-          # Cela va créer TOUS les fichiers Java et Gradle correctement
-          npx react-native@0.72.6 init SuppliesTracker --version 0.72.6 --skip-install --npm --directory .
+          # 3. Initialisation du dossier Android (si manquant ou corrompu)
+          # On force la création des fichiers natifs nécessaires au build
+          npx react-native@0.72.6 init SuppliesTracker --version 0.72.6 --skip-install --npm --directory . --force
           
-          # 4. On remet ton code métier (Offline)
-          mv ../App.js.backup App.js
-          
-          # 5. On installe les dépendances
+          # 4. Installation de toutes les dépendances du projet
           npm install
+          
+          # 5. Installation des bibliothèques spécifiques mentionnées dans votre code
           npm install react-native-sqlite-storage lucide-react-native react-native-svg react-native-linear-gradient react-native-image-picker react-native-signature-canvas react-native-webview
+          
       - name: Bundle JavaScript
         script: |
-          # On prépare le pack pour le mode sans internet
+          # Création forcée du dossier pour le pack de l'application
           mkdir -p android/app/src/main/assets
-          npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+          
+          # Exécution du bundle avec le CLI local
+          npx react-native bundle \
+            --platform android \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res
+            
       - name: Build APK
         script: |
           cd android
           chmod +x gradlew
+          # Suppression du cache Gradle pour éviter les erreurs de précédentes tentatives
+          ./gradlew clean
           ./gradlew assembleDebug --no-daemon
+          
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
     publishing:
       email:
         recipients:
-          - ton-email@ici.com
+          - votre-email@exemple.com # Remplacez par votre email pour recevoir l'APK
