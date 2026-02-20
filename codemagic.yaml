@@ -6,17 +6,18 @@ workflows:
     scripts:
       - name: Setup and Install
         script: |
+          # 1. Configuration Java et JS
           sdk use java 11.0.19-sem || true
           cp "App (1).js" App.js || true
           npm install --quiet
           
-          # Nettoyage et création des dossiers
+          # 2. Structure Android
           rm -rf android
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/assets
 
-          # Configuration fichiers
+          # 3. Configuration Gradle Root
           echo "rootProject.name = 'SuppliesTracker'" > android/settings.gradle
           echo "include ':app'" >> android/settings.gradle
 
@@ -26,10 +27,15 @@ workflows:
               dependencies { classpath("com.android.tools.build:gradle:7.4.2") }
           }
           allprojects {
-              repositories { google(); mavenCentral(); maven { url "$CM_BUILD_DIR/node_modules/react-native/android" } }
+              repositories { 
+                  google()
+                  mavenCentral()
+                  maven { url "$CM_BUILD_DIR/node_modules/react-native/android" } 
+              }
           }
           EOF
 
+          # 4. Configuration App
           cat <<EOF > android/app/build.gradle
           apply plugin: "com.android.application"
           android {
@@ -42,14 +48,19 @@ workflows:
                   versionCode 1
                   versionName "1.0"
               }
+              packagingOptions {
+                  pickFirst '**/libc++_shared.so'
+                  pickFirst '**/libfbjni.so'
+              }
           }
           dependencies {
               implementation "com.facebook.react:react-android:0.72.6"
               implementation "com.facebook.react:hermes-android:0.72.6"
+              implementation "androidx.appcompat:appcompat:1.4.1"
           }
           EOF
 
-          # Sources Java minimales
+          # 5. Fichiers Java et Manifest
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainActivity.java
           package com.suppliestracker;
           import com.facebook.react.ReactActivity;
@@ -72,7 +83,7 @@ workflows:
             private final ReactNativeHost mReactNativeHost = new ReactNativeHost(this) {
               @Override public boolean getUseDeveloperSupport() { return false; }
               @Override protected List<ReactPackage> getPackages() { return Arrays.<ReactPackage>asList(new MainReactPackage()); }
-              @Override protected String getJSMainModuleName() { return "App"; }
+              @Override protected String getJSMainModuleName() { return "index"; }
             };
             @Override public ReactNativeHost getReactNativeHost() { return mReactNativeHost; }
             @Override public void onCreate() { super.onCreate(); SoLoader.init(this, false); }
@@ -81,6 +92,7 @@ workflows:
 
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
+              <uses-permission android:name="android.permission.INTERNET" />
               <application android:name=".MainApplication" android:label="SuppliesTracker" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
@@ -94,18 +106,18 @@ workflows:
 
       - name: Build APK
         script: |
-          # 1. Générer le bundle JS d'abord
+          # Bundle JS
           npx react-native bundle --platform android --dev false --entry-file App.js \
             --bundle-output android/app/src/main/assets/index.android.bundle \
             --assets-dest android/app/src/main/res
 
-          # 2. Lancer la compilation réelle
           cd android
-          gradle wrapper --gradle-version 7.4
+          # Correction ici : passage à la version 7.5 demandée par le plugin
+          gradle wrapper --gradle-version 7.5
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
-          # 3. Déplacer l'APK à la racine pour être sûr que Codemagic le voit
+          # Copie de l'APK pour les artifacts
           cp app/build/outputs/apk/debug/app-debug.apk ../suppliestracker.apk
 
     artifacts:
