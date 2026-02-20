@@ -8,52 +8,38 @@ workflows:
         script: |
           npm install
           npm install react-native-sqlite-storage lucide-react-native react-native-svg react-native-linear-gradient react-native-image-picker react-native-signature-canvas react-native-webview
-      - name: Setup Android Structure
+      - name: Setup Android Structure & Assets
         script: |
           cd android
-          # 1. Créer les dossiers de ressources
           mkdir -p app/src/main/res/values
-          mkdir -p app/src/main/res/mipmap-mdpi
+          mkdir -p app/src/main/assets
           
-          # 2. Créer un thème minimaliste (indispensable pour le build)
+          # Thème et Manifest
           cat <<EOF > app/src/main/res/values/styles.xml
-          <resources>
-              <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar"></style>
-          </resources>
+          <resources><style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar"></style></resources>
           EOF
-
-          # 3. Créer le Manifest (on pointe vers le nouveau thème AppTheme)
-          mkdir -p app/src/main
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
-              <application
-                android:label="Supplies Tracker"
-                android:allowBackup="true"
-                android:theme="@style/AppTheme">
-                <activity
-                  android:name=".MainActivity"
-                  android:exported="true">
-                  <intent-filter>
-                      <action android:name="android.intent.action.MAIN" />
-                      <category android:name="android.intent.category.LAUNCHER" />
-                  </intent-filter>
-                </activity>
+              <application android:label="Supplies Tracker" android:theme="@style/AppTheme">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
               </application>
           </manifest>
           EOF
-
-          # 4. Setup Gradle Wrapper
-          mkdir -p gradle/wrapper
-          curl -L https://raw.githubusercontent.com/gradle/gradle/v8.0.2/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
-          curl -L https://raw.githubusercontent.com/gradle/gradle/v8.0.2/gradlew -o gradlew
-          printf "distributionBase=GRADLE_USER_HOME\ndistributionPath=wrapper/dists\nzipStoreBase=GRADLE_USER_HOME\nzipStorePath=wrapper/dists\ndistributionUrl=https\://services.gradle.org/distributions/gradle-8.0.2-all.zip" > gradle/wrapper/gradle-wrapper.properties
-          chmod +x gradlew
-      - name: Build APK
+      - name: Bundle JavaScript (The Offline Core)
+        script: |
+          # Cette étape met ton code App.js DANS l'APK pour le mode Offline
+          npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+      - name: Build Signed APK
         script: |
           cd android
-          ./gradlew assembleRelease
+          # On génère une version "Debug" car elle est auto-signée et installable immédiatement
+          ./gradlew assembleDebug
     artifacts:
-      - android/app/build/outputs/apk/release/*.apk
+      - android/app/build/outputs/apk/debug/*.apk
     publishing:
       email:
         recipients:
