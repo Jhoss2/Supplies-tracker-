@@ -6,32 +6,27 @@ workflows:
     scripts:
       - name: Setup Project Structure
         script: |
-          # 1. Préparation du code source
+          # 1. On prépare les fichiers JS
           cp "App (1).js" App.js || true
           
-          # 2. NETTOYAGE RADICAL
-          # On supprime tout ce qui pourrait empêcher une installation propre
-          rm -rf android
-          rm -rf node_modules
-          rm -f package-lock.json
+          # 2. Nettoyage de sécurité
+          rm -rf android node_modules package-lock.json
           
-          # 3. GÉNÉRATION FORCEE
-          # On installe le CLI et on force la création du dossier Android
-          npm install @react-native-community/cli@latest @react-native-community/cli-platform-android@latest --save-dev
+          # 3. On génère un dossier Android NEUF
+          # On utilise npx pour l'initier sans dépendre du dossier node_modules local
+          npx react-native@0.72.6 init SuppliesTracker --version 0.72.6 --skip-install --npm --directory . --force
           
-          # On crée un projet temporaire pour être sûr d'avoir tous les fichiers
-          npx react-native@0.72.6 init TempApp --version 0.72.6 --skip-install --npm
-          
-          # On récupère le dossier android TOUT NEUF
-          mv TempApp/android .
-          mv TempApp/app.json .
-          
-          # 4. INSTALLATION DES DÉPENDANCES
+          # 4. INSTALLATION CRUCIALE
+          # On installe TOUT maintenant pour que l'auto-linking trouve les chemins
           npm install
+          npm install @react-native-community/cli-platform-android --save-dev
+          
+          # Installation des bibliothèques de votre code
           npm install react-native-sqlite-storage lucide-react-native react-native-svg react-native-linear-gradient react-native-image-picker react-native-signature-canvas react-native-webview
 
       - name: Bundle JavaScript
         script: |
+          # Préparation du bundle pour le mode hors-ligne
           mkdir -p android/app/src/main/assets
           npx react-native bundle \
             --platform android \
@@ -43,9 +38,8 @@ workflows:
       - name: Build APK
         script: |
           cd android
-          # On s'assure que le fichier gradlew est exécutable
           chmod +x gradlew
-          # On augmente la mémoire pour éviter le StackOverflow
+          # Correction de la mémoire pour éviter le StackOverflow
           export GRADLE_OPTS="-Xmx2048m -Xss4m"
           ./gradlew assembleDebug --no-daemon
           
