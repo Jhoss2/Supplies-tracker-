@@ -9,26 +9,30 @@ workflows:
           # 1. Préparation du code
           cp "App (1).js" App.js || true
           
-          # 2. Création de l'arborescence Android
+          # 2. Installation des dépendances (CRUCIAL : avant de configurer Gradle)
+          npm install
+          
+          # 3. Création de l'arborescence Android
           mkdir -p android/app/src/main/res/drawable
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/assets
           
-          # 3. Placement et CORRECTION des fichiers Gradle
+          # 4. Placement des fichiers Gradle
           cp settings.gradle.txt android/settings.gradle || true
           cp build.gradle.txt android/build.gradle || true
           cp "build.gradle (1).txt" android/app/build.gradle || true
 
-          # 4. Ajout de l'Auto-linking (L'étape manquante qui causait l'erreur)
-          echo "apply from: file(\"../node_modules/@react-native-community/cli-platform-android/native_modules.gradle\"); applyNativeModulesSettingsGradle(settings)" >> android/settings.gradle
-          echo "apply from: file(\"../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle\"); applyNativeModulesAppBuildGradle(project)" >> android/app/build.gradle
+          # 5. Injection de l'Auto-linking avec des chemins robustes
+          # On utilise $CM_BUILD_DIR pour être sûr du chemin absolu
+          echo "apply from: file(\"$CM_BUILD_DIR/node_modules/@react-native-community/cli-platform-android/native_modules.gradle\"); applyNativeModulesSettingsGradle(settings)" >> android/settings.gradle
+          echo "apply from: file(\"$CM_BUILD_DIR/node_modules/@react-native-community/cli-platform-android/native_modules.gradle\"); applyNativeModulesAppBuildGradle(project)" >> android/app/build.gradle
 
-          # 5. Création du Manifest indispensable
+          # 6. Création du Manifest
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
               <uses-permission android:name="android.permission.INTERNET" />
               <application android:label="SuppliesTracker" android:allowBackup="false" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-                  <activity android:name=".MainActivity" android:exported="true">
+                  <activity android:name=".MainActivity" android:exported="true" android:windowSoftInputMode="adjustResize">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
@@ -38,9 +42,6 @@ workflows:
           </manifest>
           EOF
 
-          # 6. Installation des dépendances
-          npm install
-          
       - name: Bundle JavaScript
         script: |
           npx react-native bundle \
@@ -53,8 +54,11 @@ workflows:
       - name: Build APK
         script: |
           cd android
+          # GÉNÉRATION DU WRAPPER (Doit être fait en premier)
           gradle wrapper --gradle-version 8.0.2
           chmod +x gradlew
+          
+          # BUILD
           export GRADLE_OPTS="-Xmx2048m -Xss4m"
           ./gradlew assembleDebug --no-daemon
           
