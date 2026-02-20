@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "start": "react-native start",
     "android": "react-native run-android",
-    "ios": "react-native run-ios",
-    "start": "react-native start"
+    "bundle-android": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res"
   },
   "dependencies": {
     "react": "18.2.0",
@@ -19,12 +19,11 @@
     "react-native-webview": "13.6.2"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0",
-    "@babel/preset-env": "^7.20.0",
-    "@babel/runtime": "^7.20.0",
-    "@react-native-community/cli": "latest",
-    "@react-native-community/cli-platform-android": "latest",
+    "@react-native-community/cli": "11.3.7",
+    "@react-native-community/cli-platform-android": "11.3.7",
     "@react-native/metro-config": "^0.72.11",
-    "metro-config": "^0.76.0"
+    "@babel/core": "^7.20.0",
+    "@babel/runtime": "^7.20.0",
+    "metro-react-native-babel-preset": "^0.76.0"
   }
 }
