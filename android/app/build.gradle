@@ -11,3 +11,18 @@ android {
         versionName "1.0"
     }
 }
+
+dependencies {
+    // Cette ligne est CRUCIALE pour corriger l'erreur de compilation Java
+    implementation("com.facebook.react:react-android")
+    implementation("com.facebook.react:hermes-android")
+}
+
+// On indique à Gradle où trouver les bibliothèques React Native installées par npm
+repositories {
+    maven {
+        url("$rootDir/../node_modules/react-native/android")
+    }
+    google()
+    mavenCentral()
+}
