@@ -18,10 +18,11 @@
     "react-native-webview": "13.6.2"
   },
   "devDependencies": {
-    "@react-native-community/cli": "latest",
-    "@react-native-community/cli-platform-android": "latest",
-    "@react-native/metro-config": "^0.72.11",
+    "@react-native-community/cli": "11.3.7",
+    "@react-native-community/cli-platform-android": "11.3.7",
+    "@react-native/metro-config": "0.72.11",
     "@babel/core": "^7.20.0",
-    "@babel/runtime": "^7.20.0"
+    "@babel/runtime": "^7.20.0",
+    "metro-react-native-babel-preset": "0.76.7"
   }
 }
