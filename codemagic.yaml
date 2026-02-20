@@ -4,29 +4,20 @@ workflows:
     instance_type: mac_mini_m1
     max_build_duration: 60
     scripts:
-      - name: Setup Environment
+      - name: Install dependencies
         script: |
-          # 1. Nettoyage total
-          rm -rf *
-          
-          # 2. Création du projet directement dans le dossier courant (.)
-          # On utilise --directory . pour éviter de créer un sous-dossier
-          npx react-native init SuppliesApp --version 0.72.6 --skip-install --npm --directory .
-          
-          # 3. Récupération de votre code depuis GitHub (vu qu'on a tout effacé)
-          git checkout App.js
-          
-          # 4. Installation des dépendances Offline (SQLite)
           npm install
           npm install react-native-sqlite-storage lucide-react-native react-native-svg react-native-linear-gradient react-native-image-picker react-native-signature-canvas react-native-webview
-          
+      - name: Force Gradle Wrapper
+        script: |
+          cd android
+          # On télécharge le moteur de build directement puisqu'il manque
+          curl -L https://raw.githubusercontent.com/gradle/gradle/master/gradlew -o gradlew
+          chmod +x gradlew
       - name: Build APK
         script: |
-          # Vérification de sécurité
-          if [ ! -d "android" ]; then echo "ERREUR: Le dossier android n'a pas été créé"; exit 1; fi
-          
-          chmod +x android/gradlew
-          cd android && ./gradlew assembleRelease
+          cd android
+          ./gradlew assembleRelease --stacktrace
     artifacts:
       - android/app/build/outputs/apk/release/*.apk
     publishing:
