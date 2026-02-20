@@ -4,25 +4,34 @@ workflows:
     instance_type: mac_mini_m1
     max_build_duration: 60
     scripts:
-      - name: Setup Project
+      - name: Setup Project Structure
         script: |
-          # 1. On prépare les fichiers JavaScript
+          # 1. Préparation du code source
           cp "App (1).js" App.js || true
           
-          # 2. Nettoyage radical pour éviter les conflits de dossiers
+          # 2. NETTOYAGE RADICAL
+          # On supprime tout ce qui pourrait empêcher une installation propre
           rm -rf android
+          rm -rf node_modules
+          rm -f package-lock.json
           
-          # 3. Installation du CLI et génération d'un dossier Android PROPRE
-          # On le génère directement ici sans dossier temporaire
+          # 3. GÉNÉRATION FORCEE
+          # On installe le CLI et on force la création du dossier Android
+          npm install @react-native-community/cli@latest @react-native-community/cli-platform-android@latest --save-dev
+          
+          # On crée un projet temporaire pour être sûr d'avoir tous les fichiers
+          npx react-native@0.72.6 init TempApp --version 0.72.6 --skip-install --npm
+          
+          # On récupère le dossier android TOUT NEUF
+          mv TempApp/android .
+          mv TempApp/app.json .
+          
+          # 4. INSTALLATION DES DÉPENDANCES
           npm install
-          npx react-native@0.72.6 init SuppliesTracker --version 0.72.6 --skip-install --npm --directory . --force
-
-          # 4. Installation des plugins nécessaires (SQLite, Gradient, etc.)
           npm install react-native-sqlite-storage lucide-react-native react-native-svg react-native-linear-gradient react-native-image-picker react-native-signature-canvas react-native-webview
-          
+
       - name: Bundle JavaScript
         script: |
-          # Création du dossier assets pour le mode sans internet
           mkdir -p android/app/src/main/assets
           npx react-native bundle \
             --platform android \
@@ -34,9 +43,9 @@ workflows:
       - name: Build APK
         script: |
           cd android
-          # On répare les permissions du lanceur Gradle
+          # On s'assure que le fichier gradlew est exécutable
           chmod +x gradlew
-          # On lance la compilation avec une limite de mémoire pour éviter le StackOverflow
+          # On augmente la mémoire pour éviter le StackOverflow
           export GRADLE_OPTS="-Xmx2048m -Xss4m"
           ./gradlew assembleDebug --no-daemon
           
