@@ -6,34 +6,34 @@ workflows:
     scripts:
       - name: Setup Project Structure
         script: |
-          # 1. Préparation du code JS
           cp "App (1).js" App.js || true
-          
-          # 2. Installation silencieuse
           npm install --quiet
           
-          # 3. Création des dossiers Android
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/drawable
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/assets
           
-          # 4. Settings.gradle SIMPLIFIÉ (Sans auto-link automatique qui fait planter)
           cat <<EOF > android/settings.gradle
           rootProject.name = 'SuppliesTracker'
           include ':app'
           EOF
 
-          # 5. Build.gradle (root)
           cat <<EOF > android/build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
               dependencies { classpath("com.android.tools.build:gradle:8.0.2") }
           }
-          allprojects { repositories { google(); mavenCentral() } }
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+                  maven { url "$CM_BUILD_DIR/node_modules/react-native/android" }
+                  maven { url "https://www.jitpack.io" }
+              }
+          }
           EOF
 
-          # 6. Build.gradle (app) SÉCURISÉ
           cat <<EOF > android/app/build.gradle
           apply plugin: "com.android.application"
 
@@ -50,11 +50,12 @@ workflows:
           }
           
           dependencies {
-              implementation("com.facebook.react:react-android")
+              // Correction ici : ajout de la version explicite
+              implementation("com.facebook.react:react-android:0.72.6")
+              implementation("com.facebook.react:hermes-android:0.72.6")
           }
           EOF
 
-          # 7. Manifest (Indispensable)
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
               <application android:label="SuppliesTracker" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
@@ -80,7 +81,6 @@ workflows:
       - name: Build APK
         script: |
           cd android
-          # On génère le wrapper AVANT tout
           gradle wrapper --gradle-version 8.0.2
           chmod +x gradlew
           export GRADLE_OPTS="-Xmx2048m -Xss4m"
