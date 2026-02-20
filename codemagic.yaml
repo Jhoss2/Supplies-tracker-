@@ -9,11 +9,56 @@ workflows:
           cp "App (1).js" App.js || true
           npm install --quiet
           
+          # 1. Création de l'arborescence Java complète
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/drawable
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/assets
           
+          # 2. CRÉATION DU FICHIER JAVA (Étape manquante précédemment)
+          cat <<EOF > android/app/src/main/java/com/suppliestracker/MainActivity.java
+          package com.suppliestracker;
+          import com.facebook.react.ReactActivity;
+          public class MainActivity extends ReactActivity {
+            @Override
+            protected String getMainComponentName() {
+              return "SuppliesTracker";
+            }
+          }
+          EOF
+
+          # 3. Création du fichier MainApplication.java
+          cat <<EOF > android/app/src/main/java/com/suppliestracker/MainApplication.java
+          package com.suppliestracker;
+          import android.app.Application;
+          import com.facebook.react.PackageList;
+          import com.facebook.react.ReactApplication;
+          import com.facebook.react.ReactNativeHost;
+          import com.facebook.react.ReactPackage;
+          import com.facebook.soloader.SoLoader;
+          import java.util.List;
+          public class MainApplication extends Application implements ReactApplication {
+            private final ReactNativeHost mReactNativeHost = new ReactNativeHost(this) {
+              @Override
+              public boolean getUseDeveloperSupport() { return false; }
+              @Override
+              protected List<ReactPackage> getPackages() {
+                return new PackageList(this).getPackages();
+              }
+              @Override
+              protected String getJSMainModuleName() { return "index"; }
+            };
+            @Override
+            public ReactNativeHost getReactNativeHost() { return mReactNativeHost; }
+            @Override
+            public void onCreate() {
+              super.onCreate();
+              SoLoader.init(this, false);
+            }
+          }
+          EOF
+
+          # 4. Fichiers Gradle et Manifest
           cat <<EOF > android/settings.gradle
           rootProject.name = 'SuppliesTracker'
           include ':app'
@@ -29,14 +74,12 @@ workflows:
                   google()
                   mavenCentral()
                   maven { url "$CM_BUILD_DIR/node_modules/react-native/android" }
-                  maven { url "https://www.jitpack.io" }
               }
           }
           EOF
 
           cat <<EOF > android/app/build.gradle
           apply plugin: "com.android.application"
-
           android {
               namespace "com.suppliestracker"
               compileSdkVersion 33
@@ -48,9 +91,7 @@ workflows:
                   versionName "1.0"
               }
           }
-          
           dependencies {
-              // Correction ici : ajout de la version explicite
               implementation("com.facebook.react:react-android:0.72.6")
               implementation("com.facebook.react:hermes-android:0.72.6")
           }
@@ -58,7 +99,7 @@ workflows:
 
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
-              <application android:label="SuppliesTracker" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+              <application android:name=".MainApplication" android:label="SuppliesTracker" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -83,7 +124,6 @@ workflows:
           cd android
           gradle wrapper --gradle-version 8.0.2
           chmod +x gradlew
-          export GRADLE_OPTS="-Xmx2048m -Xss4m"
           ./gradlew assembleDebug --no-daemon
           
     artifacts:
