@@ -6,53 +6,42 @@ workflows:
     scripts:
       - name: Setup Project Structure
         script: |
-          # 1. Préparation des fichiers source
+          # 1. On prépare le fichier principal
           cp "App (1).js" App.js || true
           
-          # 2. Nettoyage complet du dossier de travail
-          # On garde seulement les fichiers vitaux pour l'init
-          mkdir ../temp_source
-          cp package.json App.js index.js app.json ../temp_source/ || true
-          rm -rf *
-          cp ../temp_source/* .
+          # 2. Création MANUELLE de l'arborescence Android
+          # C'est cette étape qui remplace le 'npx react-native init' qui échouait
+          mkdir -p android/app/src/main/res/drawable
+          mkdir -p android/app/src/main/res/values
+          mkdir -p android/app/src/main/assets
           
-          # 3. Génération de la structure Android
-          # On utilise --skip-install pour ne pas perdre de temps ici
-          npx react-native@0.72.6 init SuppliesTracker --version 0.72.6 --skip-install --npm --directory . --non-interactive
+          # 3. Placement de vos fichiers Gradle (en enlevant le .txt)
+          cp build.gradle.txt android/build.gradle || true
+          cp "build.gradle (1).txt" android/app/build.gradle || true
+          cp settings.gradle.txt android/settings.gradle || true
           
-          # 4. Installation massive des dépendances AU BON ENDROIT
-          npm install
-          npm install @react-native-community/cli-platform-android --save-dev
-          
-          # 5. Injection forcée des liens (Auto-link) avec chemins RELATIFS directs
-          # On écrase les lignes problématiques générées par l'init
-          echo "rootProject.name = 'SuppliesTracker'" > android/settings.gradle
-          echo "apply from: file(\"../node_modules/@react-native-community/cli-platform-android/native_modules.gradle\"); applyNativeModulesSettingsGradle(settings)" >> android/settings.gradle
-          echo "include ':app'" >> android/settings.gradle
-          
-          echo "apply plugin: \"com.android.application\"" > android/app/build.gradle
-          echo "apply from: file(\"../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle\"); applyNativeModulesAppBuildGradle(project)" >> android/app/build.gradle
-          # On ajoute le reste du contenu minimal pour le build.gradle de l'app
-          cat <<EOF >> android/app/build.gradle
-          android {
-              namespace "com.suppliestracker"
-              compileSdkVersion 33
-              defaultConfig {
-                  applicationId "com.suppliestracker"
-                  minSdkVersion 21
-                  targetSdkVersion 33
-                  versionCode 1
-                  versionName "1.0"
-              }
-          }
-          dependencies {
-              implementation("com.facebook.react:react-android")
-          }
+          # 4. Création du Manifest minimal (Indispensable pour Android)
+          cat <<EOF > android/app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application android:label="SuppliesTracker" android:allowBackup="false" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+                  <activity android:name="com.facebook.react.devsupport.DevSettingsActivity" />
+              </application>
+          </manifest>
           EOF
 
+          # 5. Installation des dépendances
+          npm install
+          
       - name: Bundle JavaScript
         script: |
-          mkdir -p android/app/src/main/assets
+          # Génération du bundle (le code de l'app) dans les assets
           npx react-native bundle \
             --platform android \
             --dev false \
@@ -63,9 +52,11 @@ workflows:
       - name: Build APK
         script: |
           cd android
-          # On s'assure que le wrapper est présent
+          # On génère le fichier gradlew qui manquait
           gradle wrapper --gradle-version 8.0.2
           chmod +x gradlew
+          
+          # Build final
           export GRADLE_OPTS="-Xmx2048m -Xss4m"
           ./gradlew assembleDebug --no-daemon
           
