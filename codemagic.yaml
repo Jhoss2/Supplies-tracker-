@@ -6,9 +6,8 @@ workflows:
     scripts:
       - name: Setup and Install
         script: |
-          # 1. Force Java 11 (Indispensable pour Gradle 7.5)
+          # 1. Force Java 11 (Standard de stabilité pour RN 0.72)
           sdk use java 11.0.19-sem || true
-          java -version
           
           # 2. Préparation JS
           cp "App (1).js" App.js || true
@@ -26,7 +25,7 @@ workflows:
           cat <<EOF > android/build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
-              dependencies { classpath("com.android.tools.build:gradle:7.4.2") }
+              dependencies { classpath("com.android.tools.build:gradle:7.3.1") }
           }
           allprojects {
               repositories {
@@ -48,7 +47,9 @@ workflows:
                   targetSdkVersion 33
                   versionCode 1
                   versionName "1.0"
-                  multiDexEnabled true
+              }
+              buildTypes {
+                  release { minifyEnabled false }
               }
               packagingOptions {
                   pickFirst '**/libc++_shared.so'
@@ -59,11 +60,10 @@ workflows:
               implementation "com.facebook.react:react-android:0.72.6"
               implementation "com.facebook.react:hermes-android:0.72.6"
               implementation "androidx.appcompat:appcompat:1.4.1"
-              implementation "androidx.multidex:multidex:2.0.1"
           }
           EOF
 
-          # 5. Java Sources
+          # 5. Java Sources (Simplifiés au maximum)
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainActivity.java
           package com.suppliestracker;
           import com.facebook.react.ReactActivity;
@@ -85,17 +85,12 @@ workflows:
           import java.util.List;
           public class MainApplication extends Application implements ReactApplication {
             private final ReactNativeHost mReactNativeHost = new ReactNativeHost(this) {
-              @Override
-              public boolean getUseDeveloperSupport() { return false; }
-              @Override
-              protected List<ReactPackage> getPackages() { return Arrays.<ReactPackage>asList(new MainReactPackage()); }
-              @Override
-              protected String getJSMainModuleName() { return "index"; }
+              @Override public boolean getUseDeveloperSupport() { return false; }
+              @Override protected List<ReactPackage> getPackages() { return Arrays.<ReactPackage>asList(new MainReactPackage()); }
+              @Override protected String getJSMainModuleName() { return "App"; }
             };
-            @Override
-            public ReactNativeHost getReactNativeHost() { return mReactNativeHost; }
-            @Override
-            public void onCreate() { super.onCreate(); SoLoader.init(this, false); }
+            @Override public ReactNativeHost getReactNativeHost() { return mReactNativeHost; }
+            @Override public void onCreate() { super.onCreate(); SoLoader.init(this, false); }
           }
           EOF
 
@@ -107,31 +102,4 @@ workflows:
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-
-      - name: Bundle JS
-        script: |
-          npx react-native bundle --platform android --dev false --entry-file App.js \
-            --bundle-output android/app/src/main/assets/index.android.bundle \
-            --assets-dest android/app/src/main/res
-
-      - name: Build APK
-        script: |
-          cd android
-          # Nettoyage avant build
-          rm -rf app/build
-          gradle wrapper --gradle-version 7.5
-          chmod +x gradlew
-          # On limite la mémoire pour éviter les crashs silencieux
-          ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Xmx2g"
-          
-    artifacts:
-      - android/app/build/outputs/apk/debug/*.apk
-    publishing:
-      email:
-        recipients:
-          - ton-email@exemple.com
+                      </intent-
