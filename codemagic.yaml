@@ -5,19 +5,24 @@ workflows:
     scripts:
       - name: Setup Project Structure
         script: |
-          # On renomme le fichier App
+          # 1. Préparation des fichiers
           cp "App (1).js" App.js || true
           
-          # On s'assure que les fichiers Gradle sont au bon endroit
+          # 2. Installation du CLI et des dépendances
+          npm install @react-native-community/cli @react-native-community/cli-platform-android --save-dev
+          npm install
+          
+          # 3. Réparation automatique des fichiers Gradle (L'étape CRUCIALE)
           mkdir -p android/app
           cp build.gradle.txt android/build.gradle || true
           cp "build.gradle (1).txt" android/app/build.gradle || true
           cp settings.gradle.txt android/settings.gradle || true
-          
-          # Installation du CLI pour éviter l'erreur "depends on @react-native-community/cli"
-          npm install @react-native-community/cli @react-native-community/cli-platform-android --save-dev
-          npm install
-          
+
+          # 4. Injection de l'auto-link (Pour SQLite, Svg, Gradient...)
+          # Cette ligne ajoute le support des bibliothèques tierces dans le build
+          echo "apply from: file(\"../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle\"); applyNativeModulesAppBuildGradle(project)" >> android/app/build.gradle
+          echo "apply from: file(\"../node_modules/@react-native-community/cli-platform-android/native_modules.gradle\"); applyNativeModulesSettingsGradle(settings)" >> android/settings.gradle
+
       - name: Bundle JavaScript
         script: |
           mkdir -p android/app/src/main/assets
@@ -30,8 +35,14 @@ workflows:
             
       - name: Build APK
         script: |
-          # Si gradlew manque, on le génère
           cd android
-          npm install -g corepack
-          # Commande de secours pour lancer le build sans gradlew si nécessaire
-          gradle assembleDebug
+          chmod +x gradlew
+          # Utilisation de --no-daemon et --stacktrace pour voir l'erreur précise si ça échoue
+          ./gradlew assembleDebug --no-daemon --stacktrace
+          
+    artifacts:
+      - android/app/build/outputs/apk/debug/*.apk
+    publishing:
+      email:
+        recipients:
+          - votre-email@exemple.com
