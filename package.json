@@ -16,6 +16,8 @@
     "react-native-webview": "13.6.2"
   },
   "devDependencies": {
-    "@react-native/metro-config": "^0.72.11"
+    "@react-native/metro-config": "^0.72.11",
+    "@babel/core": "^7.20.0",
+    "@babel/runtime": "^7.20.0"
   }
 }
