@@ -6,32 +6,30 @@ workflows:
     scripts:
       - name: Setup Project Structure
         script: |
-          # 1. On se déplace dans le dossier parent pour créer un projet propre
+          # 1. On se déplace dans le dossier parent pour créer un projet 100% propre
           cd ..
           rm -rf clean_project
-          
-          # 2. Création du projet dans un dossier isolé (pour éviter les conflits)
           npx react-native@0.72.6 init SuppliesTracker --version 0.72.6 --skip-install --npm --non-interactive
           
-          # 3. On rapatrie TOUS les fichiers générés dans le dossier de build de Codemagic
+          # 2. On rapatrie la structure propre vers le dossier de travail
           cp -R SuppliesTracker/* $CM_BUILD_DIR/
-          
-          # 4. On revient dans le dossier de build
           cd $CM_BUILD_DIR
           
-          # 5. On remplace le App.js par votre code (App (1).js)
+          # 3. Restauration de votre code
           cp "App (1).js" App.js || true
           
-          # 6. Installation des dépendances
+          # 4. Installation des dépendances (Nécessaire pour l'Auto-link)
           npm install
           npm install react-native-sqlite-storage lucide-react-native react-native-svg react-native-linear-gradient react-native-image-picker react-native-signature-canvas react-native-webview
 
+          # 5. RÉPARATION DE L'AUTO-LINK (Étape manquante précédemment)
+          # On injecte les scripts qui permettent à Android de voir les plugins
+          echo "apply from: file(\"../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle\"); applyNativeModulesAppBuildGradle(project)" >> android/app/build.gradle
+          echo "apply from: file(\"../node_modules/@react-native-community/cli-platform-android/native_modules.gradle\"); applyNativeModulesSettingsGradle(settings)" >> android/settings.gradle
+
       - name: Bundle JavaScript
         script: |
-          # On s'assure que le dossier de destination existe
           mkdir -p android/app/src/main/assets
-          
-          # On génère le bundle JS
           npx react-native bundle \
             --platform android \
             --dev false \
@@ -42,11 +40,11 @@ workflows:
       - name: Build APK
         script: |
           cd android
-          # Création du wrapper Gradle s'il a été oublié
+          # On force la création du wrapper
           gradle wrapper --gradle-version 8.0.2
           chmod +x gradlew
           
-          # Augmentation de la mémoire
+          # Augmentation radicale de la mémoire pour éviter le StackOverflow
           export GRADLE_OPTS="-Xmx2048m -Xss4m"
           ./gradlew assembleDebug --no-daemon
           
