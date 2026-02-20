@@ -10,21 +10,16 @@ workflows:
           cp "App (1).js" App.js || true
           npm install --quiet
 
-          # Création de la structure complète
+          # Création de la structure
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/res/drawable
           mkdir -p android/app/src/main/assets
 
-          # 1. Styles Android (CRUCIAL pour le thème AppCompat)
-          cat <<EOF > android/app/src/main/res/values/styles.xml
-          <resources>
-              <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
-              </style>
-          </resources>
-          EOF
+          # 1. Styles
+          echo '<resources><style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar"></style></resources>' > android/app/src/main/res/values/styles.xml
 
-          # 2. Fichier Settings
+          # 2. Settings
           echo "rootProject.name = 'SuppliesTracker'" > android/settings.gradle
           echo "include ':app'" >> android/settings.gradle
 
@@ -43,7 +38,7 @@ workflows:
           }
           EOF
 
-          # 4. Build.gradle (App)
+          # 4. Build.gradle (App) - AVEC PACKAGING OPTIONS
           cat <<EOF > android/app/build.gradle
           apply plugin: "com.android.application"
           android {
@@ -59,11 +54,16 @@ workflows:
               buildTypes {
                   release { minifyEnabled false }
               }
+              packagingOptions {
+                  pickFirst '**/libc++_shared.so'
+                  pickFirst '**/libfbjni.so'
+              }
           }
           dependencies {
               implementation "com.facebook.react:react-android:0.72.6"
               implementation "com.facebook.react:hermes-android:0.72.6"
               implementation "androidx.appcompat:appcompat:1.4.1"
+              implementation "androidx.swiperefreshlayout:swiperefreshlayout:1.1.0"
           }
           EOF
 
@@ -71,10 +71,7 @@ workflows:
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
               <uses-permission android:name="android.permission.INTERNET" />
-              <application 
-                  android:name=".MainApplication"
-                  android:label="SuppliesTracker" 
-                  android:theme="@style/AppTheme">
+              <application android:name=".MainApplication" android:label="SuppliesTracker" android:theme="@style/AppTheme">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -133,7 +130,7 @@ workflows:
           cd android
           gradle wrapper --gradle-version 7.5
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace
           
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
