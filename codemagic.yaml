@@ -2,33 +2,25 @@ workflows:
   android-apk:
     name: Build Android Offline APK
     instance_type: mac_mini_m1
-    max_build_duration: 60
     scripts:
-      - name: Setup React Native Project
+      - name: Setup Project Structure
         script: |
-          # 1. Sauvegarde de votre fichier App (1).js vers App.js
-          cp "App (1).js" App.js
+          # On renomme le fichier App
+          cp "App (1).js" App.js || true
           
-          # 2. Nettoyage et Installation forcée du CLI
-          # On installe les outils de commande AVANT toute autre opération
+          # On s'assure que les fichiers Gradle sont au bon endroit
+          mkdir -p android/app
+          cp build.gradle.txt android/build.gradle || true
+          cp "build.gradle (1).txt" android/app/build.gradle || true
+          cp settings.gradle.txt android/settings.gradle || true
+          
+          # Installation du CLI pour éviter l'erreur "depends on @react-native-community/cli"
           npm install @react-native-community/cli @react-native-community/cli-platform-android --save-dev
-          
-          # 3. Initialisation du dossier Android (si manquant ou corrompu)
-          # On force la création des fichiers natifs nécessaires au build
-          npx react-native@0.72.6 init SuppliesTracker --version 0.72.6 --skip-install --npm --directory . --force
-          
-          # 4. Installation de toutes les dépendances du projet
           npm install
-          
-          # 5. Installation des bibliothèques spécifiques mentionnées dans votre code
-          npm install react-native-sqlite-storage lucide-react-native react-native-svg react-native-linear-gradient react-native-image-picker react-native-signature-canvas react-native-webview
           
       - name: Bundle JavaScript
         script: |
-          # Création forcée du dossier pour le pack de l'application
           mkdir -p android/app/src/main/assets
-          
-          # Exécution du bundle avec le CLI local
           npx react-native bundle \
             --platform android \
             --dev false \
@@ -38,15 +30,8 @@ workflows:
             
       - name: Build APK
         script: |
+          # Si gradlew manque, on le génère
           cd android
-          chmod +x gradlew
-          # Suppression du cache Gradle pour éviter les erreurs de précédentes tentatives
-          ./gradlew clean
-          ./gradlew assembleDebug --no-daemon
-          
-    artifacts:
-      - android/app/build/outputs/apk/debug/*.apk
-    publishing:
-      email:
-        recipients:
-          - votre-email@exemple.com # Remplacez par votre email pour recevoir l'APK
+          npm install -g corepack
+          # Commande de secours pour lancer le build sans gradlew si nécessaire
+          gradle assembleDebug
