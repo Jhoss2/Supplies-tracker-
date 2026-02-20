@@ -9,23 +9,25 @@ workflows:
           # 1. Préparation du code source
           cp "App (1).js" App.js || true
           
-          # 2. Nettoyage total (On repart de zéro)
+          # 2. Nettoyage total (essentiel sur Codemagic)
           rm -rf android node_modules package-lock.json
           
-          # 3. Génération forcée du projet natif
-          # On installe d'abord le CLI
+          # 3. Génération du projet natif
+          # On installe le CLI d'abord
           npm install @react-native-community/cli-platform-android --save-dev
           
-          # On force l'initialisation (génère les dossiers Java/Gradle)
-          npx react-native@0.72.6 init SuppliesTracker --version 0.72.6 --skip-install --npm --directory . --force
+          # Initialisation sans l'option --force pour éviter l'erreur
+          npx react-native@0.72.6 init SuppliesTracker --version 0.72.6 --skip-install --npm --directory .
           
-          # 4. Installation des modules et création du Gradle Wrapper
+          # 4. Installation des modules
           npm install
+          
+          # 5. Création du Gradle Wrapper (si manquant)
+          if [ ! -d "android" ]; then echo "ERREUR: Dossier android non créé"; exit 1; fi
           cd android && gradle wrapper --gradle-version 8.0.2 && cd ..
 
       - name: Bundle JavaScript
         script: |
-          # Création du dossier pour le mode hors-ligne
           mkdir -p android/app/src/main/assets
           npx react-native bundle \
             --platform android \
@@ -37,11 +39,8 @@ workflows:
       - name: Build APK
         script: |
           cd android
-          # Sécurité : On s'assure que gradlew est là et exécutable
-          if [ ! -f "gradlew" ]; then gradle wrapper; fi
           chmod +x gradlew
-          
-          # Allocation mémoire pour éviter le StackOverflow
+          # Paramètres de mémoire pour éviter le StackOverflow
           export GRADLE_OPTS="-Xmx2048m -Xss4m"
           ./gradlew assembleDebug --no-daemon
           
