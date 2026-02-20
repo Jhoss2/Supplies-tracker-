@@ -6,24 +6,22 @@ workflows:
     scripts:
       - name: Setup Project Structure
         script: |
-          # 1. Préparation des fichiers JS
+          # 1. Préparation des fichiers source
           cp "App (1).js" App.js || true
           
-          # 2. Création forcée de la structure Android
-          mkdir -p android/app
+          # 2. Installation des dépendances et du CLI
+          npm install @react-native-community/cli @react-native-community/cli-platform-android --save-dev
+          npm install
           
-          # 3. Renommage et placement des fichiers Gradle (on enlève le .txt)
+          # 3. Création et nettoyage du dossier Android
+          mkdir -p android/app
           cp build.gradle.txt android/build.gradle || true
           cp "build.gradle (1).txt" android/app/build.gradle || true
           cp settings.gradle.txt android/settings.gradle || true
           
-          # 4. Installation des outils et dépendances
-          npm install @react-native-community/cli @react-native-community/cli-platform-android --save-dev
-          npm install
-          
-          # 5. GÉNÉRATION DU GRADLEW MANQUANT
-          # Cette commande installe le moteur Gradle directement dans le dossier
-          cd android && gradle wrapper --gradle-version 7.5.1 && cd ..
+          # 4. Génération propre du moteur Gradle (Gradle Wrapper)
+          # On utilise une version stable pour React Native 0.72
+          cd android && gradle wrapper --gradle-version 8.0.2 && cd ..
 
       - name: Bundle JavaScript
         script: |
@@ -38,10 +36,10 @@ workflows:
       - name: Build APK
         script: |
           cd android
-          # On donne les droits d'exécution au fichier qu'on vient de générer
           chmod +x gradlew
-          # On lance le build
-          ./gradlew assembleDebug --no-daemon
+          # On augmente la mémoire allouée à Gradle pour éviter le StackOverflow
+          export GRADLE_OPTS="-Xmx2048m -Xss4m"
+          ./gradlew assembleDebug --no-daemon --stacktrace
           
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
