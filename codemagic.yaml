@@ -6,33 +6,33 @@ workflows:
     scripts:
       - name: Setup Project Structure
         script: |
-          # 1. Préparation du code
+          # 1. Préparation des fichiers source
           cp "App (1).js" App.js || true
           
-          # 2. Installation des dépendances (CRUCIAL : avant de configurer Gradle)
+          # 2. Installation des dépendances (CRUCIAL : avant tout le reste)
           npm install
           
-          # 3. Création de l'arborescence Android
+          # 3. Création MANUELLE de l'arborescence Android
           mkdir -p android/app/src/main/res/drawable
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/assets
           
-          # 4. Placement des fichiers Gradle
-          cp settings.gradle.txt android/settings.gradle || true
+          # 4. Placement de vos fichiers Gradle personnalisés
           cp build.gradle.txt android/build.gradle || true
           cp "build.gradle (1).txt" android/app/build.gradle || true
-
-          # 5. Injection de l'Auto-linking avec des chemins robustes
-          # On utilise $CM_BUILD_DIR pour être sûr du chemin absolu
+          cp settings.gradle.txt android/settings.gradle || true
+          
+          # 5. Injection de l'Auto-linking avec des chemins ABSOLUS
+          # On utilise $CM_BUILD_DIR pour garantir que Gradle trouve le chemin
           echo "apply from: file(\"$CM_BUILD_DIR/node_modules/@react-native-community/cli-platform-android/native_modules.gradle\"); applyNativeModulesSettingsGradle(settings)" >> android/settings.gradle
           echo "apply from: file(\"$CM_BUILD_DIR/node_modules/@react-native-community/cli-platform-android/native_modules.gradle\"); applyNativeModulesAppBuildGradle(project)" >> android/app/build.gradle
 
-          # 6. Création du Manifest
+          # 6. Création du Manifest indispensable
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
               <uses-permission android:name="android.permission.INTERNET" />
-              <application android:label="SuppliesTracker" android:allowBackup="false" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-                  <activity android:name=".MainActivity" android:exported="true" android:windowSoftInputMode="adjustResize">
+              <application android:label="SuppliesTracker" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                  <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
@@ -54,11 +54,11 @@ workflows:
       - name: Build APK
         script: |
           cd android
-          # GÉNÉRATION DU WRAPPER (Doit être fait en premier)
+          # GÉNÉRATION DU WRAPPER (On le fait AVANT le chmod)
           gradle wrapper --gradle-version 8.0.2
           chmod +x gradlew
           
-          # BUILD
+          # BUILD FINAL avec correction de la mémoire (StackOverflow)
           export GRADLE_OPTS="-Xmx2048m -Xss4m"
           ./gradlew assembleDebug --no-daemon
           
