@@ -1,66 +1,25 @@
 workflows:
   android-apk:
-    name: Build Android Offline APK
+    name: Build SuppliesTracker APK
     instance_type: mac_mini_m1
     max_build_duration: 60
     scripts:
-      - name: Setup Project Structure
+      - name: Setup and Install
         script: |
-          # 1. Vérification/Création du point d'entrée JS
+          # Préparation du code JS
           cp "App (1).js" App.js || true
-          if [ ! -f index.js ]; then
-            echo "import {AppRegistry} from 'react-native'; import App from './App'; AppRegistry.registerComponent('SuppliesTracker', () => App);" > index.js
-          fi
-          
-          # 2. Installation des dépendances
           npm install --quiet
-          
-          # 3. Structure Java
+
+          # Création de l'arborescence Android minimale
           mkdir -p android/app/src/main/java/com/suppliestracker
-          mkdir -p android/app/src/main/res/drawable
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/assets
-          
-          # 4. Fichiers Java sources
-          cat <<EOF > android/app/src/main/java/com/suppliestracker/MainActivity.java
-          package com.suppliestracker;
-          import com.facebook.react.ReactActivity;
-          public class MainActivity extends ReactActivity {
-            @Override
-            protected String getMainComponentName() { return "SuppliesTracker"; }
-          }
-          EOF
 
-          cat <<EOF > android/app/src/main/java/com/suppliestracker/MainApplication.java
-          package com.suppliestracker;
-          import android.app.Application;
-          import com.facebook.react.ReactApplication;
-          import com.facebook.react.ReactNativeHost;
-          import com.facebook.react.ReactPackage;
-          import com.facebook.react.shell.MainReactPackage;
-          import com.facebook.soloader.SoLoader;
-          import java.util.Arrays;
-          import java.util.List;
-          public class MainApplication extends Application implements ReactApplication {
-            private final ReactNativeHost mReactNativeHost = new ReactNativeHost(this) {
-              @Override
-              public boolean getUseDeveloperSupport() { return false; }
-              @Override
-              protected List<ReactPackage> getPackages() { return Arrays.<ReactPackage>asList(new MainReactPackage()); }
-              @Override
-              protected String getJSMainModuleName() { return "index"; }
-            };
-            @Override
-            public ReactNativeHost getReactNativeHost() { return mReactNativeHost; }
-            @Override
-            public void onCreate() { super.onCreate(); SoLoader.init(this, false); }
-          }
-          EOF
-
-          # 5. Configuration Gradle
+          # 1. Fichier Settings
           echo "rootProject.name = 'SuppliesTracker'" > android/settings.gradle
           echo "include ':app'" >> android/settings.gradle
 
+          # 2. Build.gradle (Root)
           cat <<EOF > android/build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -75,6 +34,7 @@ workflows:
           }
           EOF
 
+          # 3. Build.gradle (App)
           cat <<EOF > android/app/build.gradle
           apply plugin: "com.android.application"
           android {
@@ -87,10 +47,6 @@ workflows:
                   versionCode 1
                   versionName "1.0"
               }
-              // Force l'ignorance des conflits de métadonnées
-              packagingOptions {
-                  pickFirst '**/libc++_shared.so'
-              }
           }
           dependencies {
               implementation "com.facebook.react:react-android:0.72.6"
@@ -98,10 +54,10 @@ workflows:
           }
           EOF
 
+          # 4. AndroidManifest.xml
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
-              <uses-permission android:name="android.permission.INTERNET" />
-              <application android:name=".MainApplication" android:label="SuppliesTracker" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+              <application android:label="SuppliesTracker" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -112,9 +68,19 @@ workflows:
           </manifest>
           EOF
 
-      - name: Bundle JavaScript
+          # 5. MainActivity.java
+          cat <<EOF > android/app/src/main/java/com/suppliestracker/MainActivity.java
+          package com.suppliestracker;
+          import com.facebook.react.ReactActivity;
+          public class MainActivity extends ReactActivity {
+              @Override
+              protected String getMainComponentName() { return "SuppliesTracker"; }
+          }
+          EOF
+
+      - name: Bundle JS
         script: |
-          npx react-native bundle --platform android --dev false --entry-file index.js \
+          npx react-native bundle --platform android --dev false --entry-file App.js \
             --bundle-output android/app/src/main/assets/index.android.bundle \
             --assets-dest android/app/src/main/res
 
