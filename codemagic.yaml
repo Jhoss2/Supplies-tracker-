@@ -6,25 +6,25 @@ workflows:
     scripts:
       - name: Setup Environment
         script: |
-          # 1. Sauvegarde de ton code App.js
-          cp App.js ../App.js.backup
+          # 1. Nettoyage total
+          rm -rf *
           
-          # 2. Suppression des restes qui font échouer le build
-          rm -rf android
+          # 2. Création du projet directement dans le dossier courant (.)
+          # On utilise --directory . pour éviter de créer un sous-dossier
+          npx react-native init SuppliesApp --version 0.72.6 --skip-install --npm --directory .
           
-          # 3. Création du châssis mobile officiel (version stable 0.72.6)
-          npx react-native init SuppliesApp --version 0.72.6 --skip-install --npm
+          # 3. Récupération de votre code depuis GitHub (vu qu'on a tout effacé)
+          git checkout App.js
           
-          # 4. On déplace les fichiers du projet neuf à la racine
-          cp -r SuppliesApp/* .
-          
-          # 5. On réinjecte ton code métier (Offline)
-          mv ../App.js.backup App.js
-          
-          # 6. Installation des drivers SQLite
+          # 4. Installation des dépendances Offline (SQLite)
           npm install
+          npm install react-native-sqlite-storage lucide-react-native react-native-svg react-native-linear-gradient react-native-image-picker react-native-signature-canvas react-native-webview
+          
       - name: Build APK
         script: |
+          # Vérification de sécurité
+          if [ ! -d "android" ]; then echo "ERREUR: Le dossier android n'a pas été créé"; exit 1; fi
+          
           chmod +x android/gradlew
           cd android && ./gradlew assembleRelease
     artifacts:
@@ -32,4 +32,4 @@ workflows:
     publishing:
       email:
         recipients:
-          - ton-email@ici.com
+          - votre-email@ici.com
