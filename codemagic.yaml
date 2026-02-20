@@ -6,20 +6,15 @@ workflows:
     scripts:
       - name: Setup and Install
         script: |
-          # 1. Passage à Java 17 (Recommandé pour Gradle 7.5+)
           sdk use java 17.0.7-sem || true
-          
-          # 2. Préparation JS
           cp "App (1).js" App.js || true
           npm install --quiet
           
-          # 3. Structure Android
           rm -rf android
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/assets
 
-          # 4. Configuration Build Root
           echo "rootProject.name = 'SuppliesTracker'" > android/settings.gradle
           echo "include ':app'" >> android/settings.gradle
 
@@ -37,7 +32,6 @@ workflows:
           }
           EOF
 
-          # 5. Configuration App
           cat <<EOF > android/app/build.gradle
           apply plugin: "com.android.application"
           android {
@@ -50,23 +44,16 @@ workflows:
                   versionCode 1
                   versionName "1.0"
               }
-              buildTypes {
-                  release { minifyEnabled false }
-              }
-              packagingOptions {
-                  pickFirst '**/libc++_shared.so'
-                  pickFirst '**/libfbjni.so'
-              }
+              // Force le nom de l'APK pour le retrouver facilement
+              project.archivesBaseName = "SuppliesTracker"
           }
           dependencies {
               implementation "com.facebook.react:react-android:0.72.6"
               implementation "com.facebook.react:hermes-android:0.72.6"
               implementation "androidx.appcompat:appcompat:1.4.1"
-              implementation "androidx.swiperefreshlayout:swiperefreshlayout:1.0.0"
           }
           EOF
 
-          # 6. Fichiers Java et Manifest
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainActivity.java
           package com.suppliestracker;
           import com.facebook.react.ReactActivity;
@@ -98,7 +85,6 @@ workflows:
 
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
-              <uses-permission android:name="android.permission.INTERNET" />
               <application android:name=".MainApplication" android:label="SuppliesTracker" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
@@ -112,7 +98,6 @@ workflows:
 
       - name: Build APK
         script: |
-          # Générer le bundle JS
           npx react-native bundle --platform android --dev false --entry-file App.js \
             --bundle-output android/app/src/main/assets/index.android.bundle \
             --assets-dest android/app/src/main/res
@@ -120,15 +105,12 @@ workflows:
           cd android
           gradle wrapper --gradle-version 7.5
           chmod +x gradlew
-          
-          # Lancer avec stacktrace pour voir l'erreur précise
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleDebug --no-daemon
 
-          # Diagnostic : Lister les fichiers si ça échoue (pour comprendre où est l'APK)
+          # On liste tous les fichiers .apk créés pour le debug dans les logs
+          echo "Recherche des APKs générés :"
           find . -name "*.apk"
-          
-          # Copie sécurisée
-          cp app/build/outputs/apk/debug/app-debug.apk ../suppliestracker.apk || echo "APK non trouvé"
 
     artifacts:
-      - "*.apk"
+      # Recherche récursive de TOUS les APKs dans n'importe quel dossier
+      - "**/build/outputs/apk/**/*.apk"
