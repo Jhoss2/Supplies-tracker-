@@ -8,14 +8,40 @@ workflows:
         script: |
           npm install
           npm install react-native-sqlite-storage lucide-react-native react-native-svg react-native-linear-gradient react-native-image-picker react-native-signature-canvas react-native-webview
-      - name: Setup Gradle Wrapper
+      - name: Setup Android Structure
         script: |
           cd android
+          # 1. Créer les dossiers pour le Manifest
+          mkdir -p app/src/main
+          
+          # 2. Créer le Manifest (Configuration Offline)
+          cat <<EOF > app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application
+                android:label="Supplies Tracker"
+                android:icon="@mipmap/ic_launcher"
+                android:allowBackup="true"
+                android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                <activity
+                  android:name=".MainActivity"
+                  android:label="Supplies Tracker"
+                  android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
+                  android:windowSoftInputMode="adjustResize"
+                  android:exported="true">
+                  <intent-filter>
+                      <action android:name="android.intent.action.MAIN" />
+                      <category android:name="android.intent.category.LAUNCHER" />
+                  </intent-filter>
+                </activity>
+              </application>
+          </manifest>
+          EOF
+
+          # 3. Setup Gradle Wrapper (comme précédemment)
           mkdir -p gradle/wrapper
-          # On télécharge le JAR et le script d'exécution
           curl -L https://raw.githubusercontent.com/gradle/gradle/v8.0.2/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
           curl -L https://raw.githubusercontent.com/gradle/gradle/v8.0.2/gradlew -o gradlew
-          # On crée le fichier de configuration du wrapper
           printf "distributionBase=GRADLE_USER_HOME\ndistributionPath=wrapper/dists\nzipStoreBase=GRADLE_USER_HOME\nzipStorePath=wrapper/dists\ndistributionUrl=https\://services.gradle.org/distributions/gradle-8.0.2-all.zip" > gradle/wrapper/gradle-wrapper.properties
           chmod +x gradlew
       - name: Build APK
