@@ -2,26 +2,28 @@ workflows:
   android-apk:
     name: Build Android Offline APK
     instance_type: mac_mini_m1
+    max_build_duration: 60
     scripts:
       - name: Setup Project Structure
         script: |
-          # 1. Préparation des fichiers
+          # 1. Préparation des fichiers JS
           cp "App (1).js" App.js || true
           
-          # 2. Installation du CLI et des dépendances
-          npm install @react-native-community/cli @react-native-community/cli-platform-android --save-dev
-          npm install
-          
-          # 3. Réparation automatique des fichiers Gradle (L'étape CRUCIALE)
+          # 2. Création forcée de la structure Android
           mkdir -p android/app
+          
+          # 3. Renommage et placement des fichiers Gradle (on enlève le .txt)
           cp build.gradle.txt android/build.gradle || true
           cp "build.gradle (1).txt" android/app/build.gradle || true
           cp settings.gradle.txt android/settings.gradle || true
-
-          # 4. Injection de l'auto-link (Pour SQLite, Svg, Gradient...)
-          # Cette ligne ajoute le support des bibliothèques tierces dans le build
-          echo "apply from: file(\"../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle\"); applyNativeModulesAppBuildGradle(project)" >> android/app/build.gradle
-          echo "apply from: file(\"../node_modules/@react-native-community/cli-platform-android/native_modules.gradle\"); applyNativeModulesSettingsGradle(settings)" >> android/settings.gradle
+          
+          # 4. Installation des outils et dépendances
+          npm install @react-native-community/cli @react-native-community/cli-platform-android --save-dev
+          npm install
+          
+          # 5. GÉNÉRATION DU GRADLEW MANQUANT
+          # Cette commande installe le moteur Gradle directement dans le dossier
+          cd android && gradle wrapper --gradle-version 7.5.1 && cd ..
 
       - name: Bundle JavaScript
         script: |
@@ -32,13 +34,14 @@ workflows:
             --entry-file index.js \
             --bundle-output android/app/src/main/assets/index.android.bundle \
             --assets-dest android/app/src/main/res
-            
+
       - name: Build APK
         script: |
           cd android
+          # On donne les droits d'exécution au fichier qu'on vient de générer
           chmod +x gradlew
-          # Utilisation de --no-daemon et --stacktrace pour voir l'erreur précise si ça échoue
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          # On lance le build
+          ./gradlew assembleDebug --no-daemon
           
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
