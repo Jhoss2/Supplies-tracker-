@@ -6,22 +6,22 @@ workflows:
     scripts:
       - name: Setup Project Structure
         script: |
-          # 1. Préparation des fichiers source
+          # 1. On prépare l'application (renommage du fichier principal)
           cp "App (1).js" App.js || true
           
-          # 2. Installation des dépendances et du CLI
+          # 2. On installe le CLI React Native indispensable
           npm install @react-native-community/cli @react-native-community/cli-platform-android --save-dev
           npm install
           
-          # 3. Création et nettoyage du dossier Android
-          mkdir -p android/app
-          cp build.gradle.txt android/build.gradle || true
-          cp "build.gradle (1).txt" android/app/build.gradle || true
-          cp settings.gradle.txt android/settings.gradle || true
+          # 3. SOLUTION RADICALE : On recrée un dossier Android propre
+          # On supprime l'ancien qui cause le StackOverflow
+          rm -rf android
           
-          # 4. Génération propre du moteur Gradle (Gradle Wrapper)
-          # On utilise une version stable pour React Native 0.72
-          cd android && gradle wrapper --gradle-version 8.0.2 && cd ..
+          # On génère un dossier Android tout neuf version 0.72.6
+          npx react-native@0.72.6 init SuppliesTracker --version 0.72.6 --skip-install --npm --directory . --force
+          
+          # 4. On réinstalle les modules pour l'auto-linking
+          npm install
 
       - name: Bundle JavaScript
         script: |
@@ -37,9 +37,9 @@ workflows:
         script: |
           cd android
           chmod +x gradlew
-          # On augmente la mémoire allouée à Gradle pour éviter le StackOverflow
+          # Correction du StackOverflow par l'augmentation de la pile mémoire
           export GRADLE_OPTS="-Xmx2048m -Xss4m"
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleDebug --no-daemon
           
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
