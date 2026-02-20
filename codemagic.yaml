@@ -10,7 +10,7 @@ workflows:
           cp "App (1).js" App.js || true
           npm install --quiet
 
-          # Création de l'arborescence Android minimale
+          # Création de l'arborescence Java correcte
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/assets
@@ -54,10 +54,14 @@ workflows:
           }
           EOF
 
-          # 4. AndroidManifest.xml
+          # 4. AndroidManifest.xml (Ajout de MainApplication)
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
-              <application android:label="SuppliesTracker" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application 
+                  android:name=".MainApplication"
+                  android:label="SuppliesTracker" 
+                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -75,6 +79,38 @@ workflows:
           public class MainActivity extends ReactActivity {
               @Override
               protected String getMainComponentName() { return "SuppliesTracker"; }
+          }
+          EOF
+
+          # 6. MainApplication.java (CRUCIAL)
+          cat <<EOF > android/app/src/main/java/com/suppliestracker/MainApplication.java
+          package com.suppliestracker;
+          import android.app.Application;
+          import com.facebook.react.ReactApplication;
+          import com.facebook.react.ReactNativeHost;
+          import com.facebook.react.ReactPackage;
+          import com.facebook.react.shell.MainReactPackage;
+          import com.facebook.soloader.SoLoader;
+          import java.util.Arrays;
+          import java.util.List;
+          public class MainApplication extends Application implements ReactApplication {
+            private final ReactNativeHost mReactNativeHost = new ReactNativeHost(this) {
+              @Override
+              public boolean getUseDeveloperSupport() { return false; }
+              @Override
+              protected List<ReactPackage> getPackages() {
+                return Arrays.<ReactPackage>asList(new MainReactPackage());
+              }
+              @Override
+              protected String getJSMainModuleName() { return "index"; }
+            };
+            @Override
+            public ReactNativeHost getReactNativeHost() { return mReactNativeHost; }
+            @Override
+            public void onCreate() {
+              super.onCreate();
+              SoLoader.init(this, false);
+            }
           }
           EOF
 
