@@ -6,26 +6,49 @@ workflows:
     scripts:
       - name: Setup Project Structure
         script: |
-          # 1. On se déplace dans le dossier parent pour créer un projet 100% propre
-          cd ..
-          rm -rf clean_project
-          npx react-native@0.72.6 init SuppliesTracker --version 0.72.6 --skip-install --npm --non-interactive
-          
-          # 2. On rapatrie la structure propre vers le dossier de travail
-          cp -R SuppliesTracker/* $CM_BUILD_DIR/
-          cd $CM_BUILD_DIR
-          
-          # 3. Restauration de votre code
+          # 1. Préparation des fichiers source
           cp "App (1).js" App.js || true
           
-          # 4. Installation des dépendances (Nécessaire pour l'Auto-link)
+          # 2. Nettoyage complet du dossier de travail
+          # On garde seulement les fichiers vitaux pour l'init
+          mkdir ../temp_source
+          cp package.json App.js index.js app.json ../temp_source/ || true
+          rm -rf *
+          cp ../temp_source/* .
+          
+          # 3. Génération de la structure Android
+          # On utilise --skip-install pour ne pas perdre de temps ici
+          npx react-native@0.72.6 init SuppliesTracker --version 0.72.6 --skip-install --npm --directory . --non-interactive
+          
+          # 4. Installation massive des dépendances AU BON ENDROIT
           npm install
-          npm install react-native-sqlite-storage lucide-react-native react-native-svg react-native-linear-gradient react-native-image-picker react-native-signature-canvas react-native-webview
-
-          # 5. RÉPARATION DE L'AUTO-LINK (Étape manquante précédemment)
-          # On injecte les scripts qui permettent à Android de voir les plugins
-          echo "apply from: file(\"../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle\"); applyNativeModulesAppBuildGradle(project)" >> android/app/build.gradle
+          npm install @react-native-community/cli-platform-android --save-dev
+          
+          # 5. Injection forcée des liens (Auto-link) avec chemins RELATIFS directs
+          # On écrase les lignes problématiques générées par l'init
+          echo "rootProject.name = 'SuppliesTracker'" > android/settings.gradle
           echo "apply from: file(\"../node_modules/@react-native-community/cli-platform-android/native_modules.gradle\"); applyNativeModulesSettingsGradle(settings)" >> android/settings.gradle
+          echo "include ':app'" >> android/settings.gradle
+          
+          echo "apply plugin: \"com.android.application\"" > android/app/build.gradle
+          echo "apply from: file(\"../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle\"); applyNativeModulesAppBuildGradle(project)" >> android/app/build.gradle
+          # On ajoute le reste du contenu minimal pour le build.gradle de l'app
+          cat <<EOF >> android/app/build.gradle
+          android {
+              namespace "com.suppliestracker"
+              compileSdkVersion 33
+              defaultConfig {
+                  applicationId "com.suppliestracker"
+                  minSdkVersion 21
+                  targetSdkVersion 33
+                  versionCode 1
+                  versionName "1.0"
+              }
+          }
+          dependencies {
+              implementation("com.facebook.react:react-android")
+          }
+          EOF
 
       - name: Bundle JavaScript
         script: |
@@ -40,11 +63,9 @@ workflows:
       - name: Build APK
         script: |
           cd android
-          # On force la création du wrapper
+          # On s'assure que le wrapper est présent
           gradle wrapper --gradle-version 8.0.2
           chmod +x gradlew
-          
-          # Augmentation radicale de la mémoire pour éviter le StackOverflow
           export GRADLE_OPTS="-Xmx2048m -Xss4m"
           ./gradlew assembleDebug --no-daemon
           
