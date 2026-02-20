@@ -2,13 +2,25 @@ workflows:
   android-apk:
     name: Build Android APK
     instance_type: mac_mini_m1
+    max_build_duration: 60
     scripts:
       - name: Install dependencies
         script: npm install
-      - name: Build APK
+      - name: Repair and Build
         script: |
-          # Cette fois, le dossier android existe, donc ça va passer
-          cd android && ./gradlew assembleRelease
+          # 1. On entre dans le dossier
+          cd android
+          
+          # 2. Si gradlew est absent, on le télécharge (sécurité)
+          if [ ! -f "gradlew" ]; then
+            curl -L https://raw.githubusercontent.com/facebook/react-native/main/template/android/gradlew -o gradlew
+          fi
+          
+          # 3. ON FORCE LES DROITS D'EXÉCUTION (Indispensable)
+          chmod +x gradlew
+          
+          # 4. On lance la compilation
+          ./gradlew assembleRelease
     artifacts:
       - android/app/build/outputs/apk/release/*.apk
     publishing:
