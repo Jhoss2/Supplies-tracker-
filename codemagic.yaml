@@ -6,19 +6,19 @@ workflows:
     scripts:
       - name: Setup and Install
         script: |
-          # 1. Configuration Java 11 (Crucial pour la stabilité)
+          # 1. Config Java 11 (la plus stable pour RN 0.72)
           sdk use java 11.0.19-sem || true
           
           # 2. Préparation du code JS
           cp "App (1).js" App.js || true
           npm install --quiet
 
-          # 3. Structure Android
+          # 3. Structure Android complète
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/assets
 
-          # 4. Fichiers de configuration
+          # 4. Fichiers de configuration (Settings & Build Root)
           echo "rootProject.name = 'SuppliesTracker'" > android/settings.gradle
           echo "include ':app'" >> android/settings.gradle
 
@@ -36,6 +36,7 @@ workflows:
           }
           EOF
 
+          # 5. Build.gradle App (Correction des conflits .so)
           cat <<EOF > android/app/build.gradle
           apply plugin: "com.android.application"
           android {
@@ -48,8 +49,6 @@ workflows:
                   versionCode 1
                   versionName "1.0"
               }
-              // Suppression des tâches inutiles pour gagner en stabilité
-              lintOptions { checkReleaseBuilds false; abortOnError false }
               packagingOptions {
                   pickFirst '**/libc++_shared.so'
                   pickFirst '**/libfbjni.so'
@@ -59,10 +58,11 @@ workflows:
               implementation "com.facebook.react:react-android:0.72.6"
               implementation "com.facebook.react:hermes-android:0.72.6"
               implementation "androidx.appcompat:appcompat:1.4.1"
+              implementation "androidx.swiperefreshlayout:swiperefreshlayout:1.1.0"
           }
           EOF
 
-          # 5. Code Source Java
+          # 6. Fichiers Java Indispensables
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainActivity.java
           package com.suppliestracker;
           import com.facebook.react.ReactActivity;
@@ -98,6 +98,7 @@ workflows:
           }
           EOF
 
+          # 7. Manifest
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
               <uses-permission android:name="android.permission.INTERNET" />
@@ -123,8 +124,8 @@ workflows:
           cd android
           gradle wrapper --gradle-version 7.5
           chmod +x gradlew
-          # Utilisation de paramètres mémoire pour éviter les crashs
-          ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Xmx2048m -XX:MaxMetaspaceSize=512m"
+          # Ajout de l'option --refresh-dependencies pour garantir la source locale
+          ./gradlew assembleDebug --no-daemon --refresh-dependencies
           
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
