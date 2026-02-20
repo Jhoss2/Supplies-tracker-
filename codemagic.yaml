@@ -6,22 +6,27 @@ workflows:
     scripts:
       - name: Setup Project Structure
         script: |
-          # 1. On prépare l'application (renommage du fichier principal)
+          # 1. On prépare l'application
           cp "App (1).js" App.js || true
           
-          # 2. On installe le CLI React Native indispensable
+          # 2. Installation forcée du CLI
           npm install @react-native-community/cli @react-native-community/cli-platform-android --save-dev
           npm install
           
-          # 3. SOLUTION RADICALE : On recrée un dossier Android propre
-          # On supprime l'ancien qui cause le StackOverflow
+          # 3. GÉNÉRATION RADICALE : On crée un projet neuf à côté et on vole son dossier android
+          # Cela garantit d'avoir un dossier 'android' 100% propre et complet
+          cd ..
+          npx react-native@0.72.6 init CleanProject --version 0.72.6 --skip-install --npm
+          cd $CM_BUILD_DIR
+          
+          # On remplace l'ancien dossier android par le tout neuf
           rm -rf android
+          cp -R ../CleanProject/android .
           
-          # On génère un dossier Android tout neuf version 0.72.6
-          npx react-native@0.72.6 init SuppliesTracker --version 0.72.6 --skip-install --npm --directory . --force
-          
-          # 4. On réinstalle les modules pour l'auto-linking
-          npm install
+          # 4. On injecte tes fichiers Gradle personnalisés par-dessus
+          cp build.gradle.txt android/build.gradle || true
+          cp "build.gradle (1).txt" android/app/build.gradle || true
+          cp settings.gradle.txt android/settings.gradle || true
 
       - name: Bundle JavaScript
         script: |
@@ -35,15 +40,14 @@ workflows:
 
       - name: Build APK
         script: |
+          # On n'utilise PAS ./gradlew (qui pose problème)
+          # On utilise 'gradle' installé sur la machine Codemagic
           cd android
-          chmod +x gradlew
-          # Correction du StackOverflow par l'augmentation de la pile mémoire
-          export GRADLE_OPTS="-Xmx2048m -Xss4m"
-          ./gradlew assembleDebug --no-daemon
+          gradle assembleDebug --no-daemon
           
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
     publishing:
       email:
         recipients:
-          - votre-email@exemple.com
+          - ton-email@exemple.com
