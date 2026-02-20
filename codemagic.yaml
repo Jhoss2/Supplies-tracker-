@@ -44,8 +44,6 @@ workflows:
                   versionCode 1
                   versionName "1.0"
               }
-              // Force le nom de l'APK pour le retrouver facilement
-              project.archivesBaseName = "SuppliesTracker"
           }
           dependencies {
               implementation "com.facebook.react:react-android:0.72.6"
@@ -98,19 +96,24 @@ workflows:
 
       - name: Build APK
         script: |
+          # 1. Bundle JS
           npx react-native bundle --platform android --dev false --entry-file App.js \
             --bundle-output android/app/src/main/assets/index.android.bundle \
             --assets-dest android/app/src/main/res
 
+          # 2. Build Gradle
           cd android
           gradle wrapper --gradle-version 7.5
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
-          # On liste tous les fichiers .apk créés pour le debug dans les logs
-          echo "Recherche des APKs générés :"
+          # 3. DIAGNOSTIC FORCE : On cherche l'APK et on le déplace de force à la racine
+          echo "Listing des fichiers APK trouvés :"
           find . -name "*.apk"
+          
+          # On copie tout ce qui finit par .apk vers la racine du projet pour Codemagic
+          find . -name "*.apk" -exec cp {} .. \;
 
     artifacts:
-      # Recherche récursive de TOUS les APKs dans n'importe quel dossier
-      - "**/build/outputs/apk/**/*.apk"
+      # On prend TOUS les APKs trouvés à la racine
+      - "*.apk"
