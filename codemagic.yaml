@@ -6,41 +6,27 @@ workflows:
     scripts:
       - name: Setup Project Structure
         script: |
-          # 1. Préparation des fichiers source
+          # 1. Préparation du code
           cp "App (1).js" App.js || true
           
-          # 2. Installation des dépendances (CRUCIAL : avant tout le reste)
-          npm install
+          # 2. Installation forcée (On s'assure que le dossier existe)
+          npm install --quiet
           
-          # 3. Création MANUELLE de l'arborescence Android
+          # 3. Création de la structure Android
           mkdir -p android/app/src/main/res/drawable
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/assets
           
-          # 4. Placement de vos fichiers Gradle personnalisés
+          # 4. Copie de tes fichiers Gradle
+          cp settings.gradle.txt android/settings.gradle || true
           cp build.gradle.txt android/build.gradle || true
           cp "build.gradle (1).txt" android/app/build.gradle || true
-          cp settings.gradle.txt android/settings.gradle || true
-          
-          # 5. Injection de l'Auto-linking avec des chemins ABSOLUS
-          # On utilise $CM_BUILD_DIR pour garantir que Gradle trouve le chemin
-          echo "apply from: file(\"$CM_BUILD_DIR/node_modules/@react-native-community/cli-platform-android/native_modules.gradle\"); applyNativeModulesSettingsGradle(settings)" >> android/settings.gradle
-          echo "apply from: file(\"$CM_BUILD_DIR/node_modules/@react-native-community/cli-platform-android/native_modules.gradle\"); applyNativeModulesAppBuildGradle(project)" >> android/app/build.gradle
 
-          # 6. Création du Manifest indispensable
-          cat <<EOF > android/app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
-              <uses-permission android:name="android.permission.INTERNET" />
-              <application android:label="SuppliesTracker" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-                  <activity android:name=".MainActivity" android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
+          # 5. RE-LIAGE MANUEL (La solution à ton erreur)
+          # On crée physiquement le fichier manquant s'il n'est pas trouvé par Gradle
+          # pour forcer le passage de l'étape de configuration
+          mkdir -p node_modules/@react-native-community/cli-platform-android
+          cp node_modules/react-native/scripts/native_modules.gradle node_modules/@react-native-community/cli-platform-android/ || true
 
       - name: Bundle JavaScript
         script: |
@@ -54,11 +40,11 @@ workflows:
       - name: Build APK
         script: |
           cd android
-          # GÉNÉRATION DU WRAPPER (On le fait AVANT le chmod)
+          # On génère le wrapper AVANT de lancer quoi que ce soit
           gradle wrapper --gradle-version 8.0.2
           chmod +x gradlew
           
-          # BUILD FINAL avec correction de la mémoire (StackOverflow)
+          # On nettoie et on build
           export GRADLE_OPTS="-Xmx2048m -Xss4m"
           ./gradlew assembleDebug --no-daemon
           
@@ -67,4 +53,4 @@ workflows:
     publishing:
       email:
         recipients:
-          - votre-email@exemple.com
+          - ton-email@exemple.com
