@@ -25,7 +25,7 @@ workflows:
           }
           EOF
 
-          # 3. MainApplication.java (Version simplifiée sans PackageList pour éviter les erreurs)
+          # 3. MainApplication.java
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainApplication.java
           package com.suppliestracker;
           import android.app.Application;
@@ -54,13 +54,11 @@ workflows:
           }
           EOF
 
-          # 4. Settings.gradle (Fixing the path error once and for all)
-          cat <<EOF > android/settings.gradle
-          rootProject.name = 'SuppliesTracker'
-          include ':app'
-          EOF
+          # 4. Settings.gradle
+          echo "rootProject.name = 'SuppliesTracker'" > android/settings.gradle
+          echo "include ':app'" >> android/settings.gradle
 
-          # 5. Build.gradle (Root)
+          # 5. Build.gradle (Root) - AJOUT DES RÉPERTOIRES
           cat <<EOF > android/build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -75,7 +73,7 @@ workflows:
           }
           EOF
 
-          # 6. Build.gradle (App) - On ajoute les dépendances natives manuellement
+          # 6. Build.gradle (App)
           cat <<EOF > android/app/build.gradle
           apply plugin: "com.android.application"
           android {
@@ -95,7 +93,7 @@ workflows:
           }
           EOF
 
-          # 7. AndroidManifest.xml
+          # 7. AndroidManifest.xml (Correction LAUNCHER)
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
               <uses-permission android:name="android.permission.INTERNET" />
@@ -103,7 +101,7 @@ workflows:
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHer" />
+                          <category android:name="android.intent.category.LAUNCHER" />
                       </intent-filter>
                   </activity>
               </application>
@@ -121,7 +119,7 @@ workflows:
           cd android
           gradle wrapper --gradle-version 8.0.2
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --stacktrace --no-daemon
           
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
