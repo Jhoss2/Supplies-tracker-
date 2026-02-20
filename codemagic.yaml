@@ -4,23 +4,28 @@ workflows:
     instance_type: mac_mini_m1
     max_build_duration: 60
     scripts:
-      - name: Install dependencies
-        script: npm install
-      - name: Repair and Build
+      - name: Create Fresh Project
         script: |
-          # 1. On entre dans le dossier
-          cd android
+          # 1. On sort les fichiers précieux (ton code) pour ne pas les perdre
+          mv App.js ../App.js.backup
           
-          # 2. Si gradlew est absent, on le télécharge (sécurité)
-          if [ ! -f "gradlew" ]; then
-            curl -L https://raw.githubusercontent.com/facebook/react-native/main/template/android/gradlew -o gradlew
-          fi
+          # 2. On crée un projet Android React Native 100% propre
+          # On utilise npx pour éviter les problèmes de version
+          npx react-native init TempApp --version 0.72.6 --skip-install --npm
           
-          # 3. ON FORCE LES DROITS D'EXÉCUTION (Indispensable)
-          chmod +x gradlew
+          # 3. On déplace le contenu du projet neuf ici
+          cp -r TempApp/* .
           
-          # 4. On lance la compilation
-          ./gradlew assembleRelease
+          # 4. On réinjecte TON code dans le nouveau projet
+          mv ../App.js.backup App.js
+          
+          # 5. On installe les bibliothèques SQLite et autres
+          npm install react-native-sqlite-storage lucide-react-native react-native-svg react-native-linear-gradient react-native-image-picker react-native-signature-canvas react-native-webview
+      
+      - name: Build APK
+        script: |
+          chmod +x android/gradlew
+          cd android && ./gradlew assembleRelease
     artifacts:
       - android/app/build/outputs/apk/release/*.apk
     publishing:
