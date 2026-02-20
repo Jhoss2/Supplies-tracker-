@@ -8,16 +8,32 @@ workflows:
         script: |
           npm install
           npm install react-native-sqlite-storage lucide-react-native react-native-svg react-native-linear-gradient react-native-image-picker react-native-signature-canvas react-native-webview
-      - name: Setup Android Structure & Assets
+      - name: Setup Android Structure & Java
         script: |
           cd android
+          # 1. Création des dossiers Java (indispensable)
+          mkdir -p app/src/main/java/com/suppliestracker
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/assets
           
-          # Thème et Manifest
+          # 2. Création de la MainActivity (Le pont vers ton JS)
+          cat <<EOF > app/src/main/java/com/suppliestracker/MainActivity.java
+          package com.suppliestracker;
+          import com.facebook.react.ReactActivity;
+          public class MainActivity extends ReactActivity {
+            @Override
+            protected String getMainComponentName() {
+              return "SuppliesTracker";
+            }
+          }
+          EOF
+
+          # 3. Création du fichier de thèmes
           cat <<EOF > app/src/main/res/values/styles.xml
           <resources><style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar"></style></resources>
           EOF
+          
+          # 4. Manifest
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
               <application android:label="Supplies Tracker" android:theme="@style/AppTheme">
@@ -31,12 +47,14 @@ workflows:
           EOF
       - name: Bundle JavaScript (The Offline Core)
         script: |
-          # Cette étape met ton code App.js DANS l'APK pour le mode Offline
+          # On crée le bundle qui contient tout ton code offline
           npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
       - name: Build Signed APK
         script: |
           cd android
-          # On génère une version "Debug" car elle est auto-signée et installable immédiatement
+          # On force le wrapper et on compile
+          curl -L https://raw.githubusercontent.com/gradle/gradle/v8.0.2/gradlew -o gradlew
+          chmod +x gradlew
           ./gradlew assembleDebug
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
