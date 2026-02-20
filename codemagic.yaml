@@ -11,23 +11,27 @@ workflows:
       - name: Setup Android Structure
         script: |
           cd android
-          # 1. Créer les dossiers pour le Manifest
-          mkdir -p app/src/main
+          # 1. Créer les dossiers de ressources
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/mipmap-mdpi
           
-          # 2. Créer le Manifest (Configuration Offline)
+          # 2. Créer un thème minimaliste (indispensable pour le build)
+          cat <<EOF > app/src/main/res/values/styles.xml
+          <resources>
+              <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar"></style>
+          </resources>
+          EOF
+
+          # 3. Créer le Manifest (on pointe vers le nouveau thème AppTheme)
+          mkdir -p app/src/main
           cat <<EOF > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
-              <uses-permission android:name="android.permission.INTERNET" />
               <application
                 android:label="Supplies Tracker"
-                android:icon="@mipmap/ic_launcher"
                 android:allowBackup="true"
-                android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                android:theme="@style/AppTheme">
                 <activity
                   android:name=".MainActivity"
-                  android:label="Supplies Tracker"
-                  android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
-                  android:windowSoftInputMode="adjustResize"
                   android:exported="true">
                   <intent-filter>
                       <action android:name="android.intent.action.MAIN" />
@@ -38,7 +42,7 @@ workflows:
           </manifest>
           EOF
 
-          # 3. Setup Gradle Wrapper (comme précédemment)
+          # 4. Setup Gradle Wrapper
           mkdir -p gradle/wrapper
           curl -L https://raw.githubusercontent.com/gradle/gradle/v8.0.2/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
           curl -L https://raw.githubusercontent.com/gradle/gradle/v8.0.2/gradlew -o gradlew
