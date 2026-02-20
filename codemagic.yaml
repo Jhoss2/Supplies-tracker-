@@ -6,19 +6,20 @@ workflows:
     scripts:
       - name: Setup and Install
         script: |
-          # 1. Config Java 11 (la plus stable pour RN 0.72)
+          # 1. Force Java 11 (Indispensable pour Gradle 7.5)
           sdk use java 11.0.19-sem || true
+          java -version
           
-          # 2. Préparation du code JS
+          # 2. Préparation JS
           cp "App (1).js" App.js || true
           npm install --quiet
 
-          # 3. Structure Android complète
+          # 3. Structure Android
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/assets
 
-          # 4. Fichiers de configuration
+          # 4. Configuration Build
           echo "rootProject.name = 'SuppliesTracker'" > android/settings.gradle
           echo "include ':app'" >> android/settings.gradle
 
@@ -36,7 +37,6 @@ workflows:
           }
           EOF
 
-          # 5. Build.gradle App (Optimisé pour la mémoire)
           cat <<EOF > android/app/build.gradle
           apply plugin: "com.android.application"
           android {
@@ -50,13 +50,9 @@ workflows:
                   versionName "1.0"
                   multiDexEnabled true
               }
-              dexOptions {
-                  javaMaxHeapSize "2g"
-              }
               packagingOptions {
                   pickFirst '**/libc++_shared.so'
                   pickFirst '**/libfbjni.so'
-                  exclude 'META-INF/DEPENDENCIES'
               }
           }
           dependencies {
@@ -67,7 +63,7 @@ workflows:
           }
           EOF
 
-          # 6. Fichiers Java Indispensables
+          # 5. Java Sources
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainActivity.java
           package com.suppliestracker;
           import com.facebook.react.ReactActivity;
@@ -103,7 +99,6 @@ workflows:
           }
           EOF
 
-          # 7. Manifest
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
               <uses-permission android:name="android.permission.INTERNET" />
@@ -127,11 +122,12 @@ workflows:
       - name: Build APK
         script: |
           cd android
+          # Nettoyage avant build
+          rm -rf app/build
           gradle wrapper --gradle-version 7.5
           chmod +x gradlew
-          # On limite la mémoire JVM pour éviter que le système ne tue le processus
-          export GRADLE_OPTS="-Dorg.gradle.jvmargs='-Xmx2048m -XX:MaxMetaspaceSize=512m'"
-          ./gradlew assembleDebug --no-daemon
+          # On limite la mémoire pour éviter les crashs silencieux
+          ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Xmx2g"
           
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
