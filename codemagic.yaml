@@ -1,27 +1,28 @@
 workflows:
   android-apk:
-    name: Build Android APK
+    name: Build Android Offline APK
     instance_type: mac_mini_m1
     max_build_duration: 60
     scripts:
-      - name: Create Fresh Project
+      - name: Setup Environment
         script: |
-          # 1. On sort les fichiers précieux (ton code) pour ne pas les perdre
-          mv App.js ../App.js.backup
+          # 1. Sauvegarde de ton code App.js
+          cp App.js ../App.js.backup
           
-          # 2. On crée un projet Android React Native 100% propre
-          # On utilise npx pour éviter les problèmes de version
-          npx react-native init TempApp --version 0.72.6 --skip-install --npm
+          # 2. Suppression des restes qui font échouer le build
+          rm -rf android
           
-          # 3. On déplace le contenu du projet neuf ici
-          cp -r TempApp/* .
+          # 3. Création du châssis mobile officiel (version stable 0.72.6)
+          npx react-native init SuppliesApp --version 0.72.6 --skip-install --npm
           
-          # 4. On réinjecte TON code dans le nouveau projet
+          # 4. On déplace les fichiers du projet neuf à la racine
+          cp -r SuppliesApp/* .
+          
+          # 5. On réinjecte ton code métier (Offline)
           mv ../App.js.backup App.js
           
-          # 5. On installe les bibliothèques SQLite et autres
-          npm install react-native-sqlite-storage lucide-react-native react-native-svg react-native-linear-gradient react-native-image-picker react-native-signature-canvas react-native-webview
-      
+          # 6. Installation des drivers SQLite
+          npm install
       - name: Build APK
         script: |
           chmod +x android/gradlew
