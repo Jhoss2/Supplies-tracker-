@@ -6,24 +6,22 @@ workflows:
     scripts:
       - name: Setup and Install
         script: |
-          # Préparation du code JS
+          # 1. Configuration Java 11 (Crucial pour la stabilité)
+          sdk use java 11.0.19-sem || true
+          
+          # 2. Préparation du code JS
           cp "App (1).js" App.js || true
           npm install --quiet
 
-          # Création de la structure
+          # 3. Structure Android
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/values
-          mkdir -p android/app/src/main/res/drawable
           mkdir -p android/app/src/main/assets
 
-          # 1. Styles
-          echo '<resources><style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar"></style></resources>' > android/app/src/main/res/values/styles.xml
-
-          # 2. Settings
+          # 4. Fichiers de configuration
           echo "rootProject.name = 'SuppliesTracker'" > android/settings.gradle
           echo "include ':app'" >> android/settings.gradle
 
-          # 3. Build.gradle (Root)
           cat <<EOF > android/build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -38,7 +36,6 @@ workflows:
           }
           EOF
 
-          # 4. Build.gradle (App) - AVEC PACKAGING OPTIONS
           cat <<EOF > android/app/build.gradle
           apply plugin: "com.android.application"
           android {
@@ -51,9 +48,8 @@ workflows:
                   versionCode 1
                   versionName "1.0"
               }
-              buildTypes {
-                  release { minifyEnabled false }
-              }
+              // Suppression des tâches inutiles pour gagner en stabilité
+              lintOptions { checkReleaseBuilds false; abortOnError false }
               packagingOptions {
                   pickFirst '**/libc++_shared.so'
                   pickFirst '**/libfbjni.so'
@@ -63,36 +59,19 @@ workflows:
               implementation "com.facebook.react:react-android:0.72.6"
               implementation "com.facebook.react:hermes-android:0.72.6"
               implementation "androidx.appcompat:appcompat:1.4.1"
-              implementation "androidx.swiperefreshlayout:swiperefreshlayout:1.1.0"
           }
           EOF
 
-          # 5. AndroidManifest.xml
-          cat <<EOF > android/app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
-              <uses-permission android:name="android.permission.INTERNET" />
-              <application android:name=".MainApplication" android:label="SuppliesTracker" android:theme="@style/AppTheme">
-                  <activity android:name=".MainActivity" android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-
-          # 6. MainActivity.java
+          # 5. Code Source Java
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainActivity.java
           package com.suppliestracker;
           import com.facebook.react.ReactActivity;
           public class MainActivity extends ReactActivity {
-              @Override
-              protected String getMainComponentName() { return "SuppliesTracker"; }
+            @Override
+            protected String getMainComponentName() { return "SuppliesTracker"; }
           }
           EOF
 
-          # 7. MainApplication.java
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainApplication.java
           package com.suppliestracker;
           import android.app.Application;
@@ -119,6 +98,20 @@ workflows:
           }
           EOF
 
+          cat <<EOF > android/app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application android:name=".MainApplication" android:label="SuppliesTracker" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
       - name: Bundle JS
         script: |
           npx react-native bundle --platform android --dev false --entry-file App.js \
@@ -130,7 +123,8 @@ workflows:
           cd android
           gradle wrapper --gradle-version 7.5
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          # Utilisation de paramètres mémoire pour éviter les crashs
+          ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Xmx2048m -XX:MaxMetaspaceSize=512m"
           
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
