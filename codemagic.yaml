@@ -6,16 +6,22 @@ workflows:
     scripts:
       - name: Setup Project Structure
         script: |
+          # 1. Vérification/Création du point d'entrée JS
           cp "App (1).js" App.js || true
+          if [ ! -f index.js ]; then
+            echo "import {AppRegistry} from 'react-native'; import App from './App'; AppRegistry.registerComponent('SuppliesTracker', () => App);" > index.js
+          fi
+          
+          # 2. Installation des dépendances
           npm install --quiet
           
-          # 1. Structure Java
+          # 3. Structure Java
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/drawable
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/assets
           
-          # 2. Fichiers Java sources
+          # 4. Fichiers Java sources
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainActivity.java
           package com.suppliestracker;
           import com.facebook.react.ReactActivity;
@@ -51,11 +57,10 @@ workflows:
           }
           EOF
 
-          # 3. Settings.gradle
+          # 5. Configuration Gradle
           echo "rootProject.name = 'SuppliesTracker'" > android/settings.gradle
           echo "include ':app'" >> android/settings.gradle
 
-          # 4. Build.gradle (Root) - IMPORTANT: Liaison Node_Modules
           cat <<EOF > android/build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -65,13 +70,11 @@ workflows:
               repositories {
                   google()
                   mavenCentral()
-                  // On pointe physiquement vers le repo local de react-native
                   maven { url "$CM_BUILD_DIR/node_modules/react-native/android" }
               }
           }
           EOF
 
-          # 5. Build.gradle (App) - VERSION FIXÉE
           cat <<EOF > android/app/build.gradle
           apply plugin: "com.android.application"
           android {
@@ -84,15 +87,17 @@ workflows:
                   versionCode 1
                   versionName "1.0"
               }
+              // Force l'ignorance des conflits de métadonnées
+              packagingOptions {
+                  pickFirst '**/libc++_shared.so'
+              }
           }
           dependencies {
-              // On force la version 0.72.6 pour correspondre à ton installation npm
               implementation "com.facebook.react:react-android:0.72.6"
               implementation "com.facebook.react:hermes-android:0.72.6"
           }
           EOF
 
-          # 6. AndroidManifest.xml
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
               <uses-permission android:name="android.permission.INTERNET" />
@@ -118,8 +123,7 @@ workflows:
           cd android
           gradle wrapper --gradle-version 7.5
           chmod +x gradlew
-          # On ajoute --refresh-dependencies pour s'assurer que Gradle scanne le dossier local
-          ./gradlew assembleDebug --no-daemon --refresh-dependencies
+          ./gradlew assembleDebug --no-daemon
           
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
