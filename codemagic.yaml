@@ -58,11 +58,11 @@ workflows:
           echo "rootProject.name = 'SuppliesTracker'" > android/settings.gradle
           echo "include ':app'" >> android/settings.gradle
 
-          # 5. Build.gradle (Root) - AJOUT DES RÉPERTOIRES
+          # 5. Build.gradle (Root)
           cat <<EOF > android/build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
-              dependencies { classpath("com.android.tools.build:gradle:8.0.2") }
+              dependencies { classpath("com.android.tools.build:gradle:7.4.2") }
           }
           allprojects {
               repositories {
@@ -73,7 +73,7 @@ workflows:
           }
           EOF
 
-          # 6. Build.gradle (App)
+          # 6. Build.gradle (App) - VERSION ALLÉGÉE
           cat <<EOF > android/app/build.gradle
           apply plugin: "com.android.application"
           android {
@@ -86,14 +86,16 @@ workflows:
                   versionCode 1
                   versionName "1.0"
               }
+              buildTypes {
+                  release { minifyEnabled false }
+              }
           }
           dependencies {
-              implementation("com.facebook.react:react-android:0.72.6")
-              implementation("com.facebook.react:hermes-android:0.72.6")
+              implementation "com.facebook.react:react-android"
           }
           EOF
 
-          # 7. AndroidManifest.xml (Correction LAUNCHER)
+          # 7. AndroidManifest.xml
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
               <uses-permission android:name="android.permission.INTERNET" />
@@ -117,9 +119,9 @@ workflows:
       - name: Build APK
         script: |
           cd android
-          gradle wrapper --gradle-version 8.0.2
+          gradle wrapper --gradle-version 7.5
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace --no-daemon
+          ./gradlew assembleDebug --no-daemon
           
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
