@@ -12,17 +12,17 @@ android {
     }
 }
 
+// On définit la version précise pour éviter que Gradle cherche dans le vide
+def reactNativeVersion = "0.72.6"
+
 dependencies {
-    // Cette ligne est CRUCIALE pour corriger l'erreur de compilation Java
-    implementation("com.facebook.react:react-android")
-    implementation("com.facebook.react:hermes-android")
+    implementation("com.facebook.react:react-android:${reactNativeVersion}")
+    implementation("com.facebook.react:hermes-android:${reactNativeVersion}")
 }
 
-// On indique à Gradle où trouver les bibliothèques React Native installées par npm
 repositories {
-    maven {
-        url("$rootDir/../node_modules/react-native/android")
-    }
     google()
     mavenCentral()
+    // Chemin vers les fichiers téléchargés par npm install
+    maven { url("$rootDir/../node_modules/react-native/android") }
 }
