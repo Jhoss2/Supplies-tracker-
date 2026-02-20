@@ -4,32 +4,25 @@ workflows:
     instance_type: mac_mini_m1
     max_build_duration: 60
     scripts:
-      - name: Setup Project Structure
+      - name: Setup Project
         script: |
-          # 1. On prépare l'application
+          # 1. On prépare les fichiers JavaScript
           cp "App (1).js" App.js || true
           
-          # 2. Installation forcée du CLI
-          npm install @react-native-community/cli @react-native-community/cli-platform-android --save-dev
-          npm install
-          
-          # 3. GÉNÉRATION RADICALE : On crée un projet neuf à côté et on vole son dossier android
-          # Cela garantit d'avoir un dossier 'android' 100% propre et complet
-          cd ..
-          npx react-native@0.72.6 init CleanProject --version 0.72.6 --skip-install --npm
-          cd $CM_BUILD_DIR
-          
-          # On remplace l'ancien dossier android par le tout neuf
+          # 2. Nettoyage radical pour éviter les conflits de dossiers
           rm -rf android
-          cp -R ../CleanProject/android .
           
-          # 4. On injecte tes fichiers Gradle personnalisés par-dessus
-          cp build.gradle.txt android/build.gradle || true
-          cp "build.gradle (1).txt" android/app/build.gradle || true
-          cp settings.gradle.txt android/settings.gradle || true
+          # 3. Installation du CLI et génération d'un dossier Android PROPRE
+          # On le génère directement ici sans dossier temporaire
+          npm install
+          npx react-native@0.72.6 init SuppliesTracker --version 0.72.6 --skip-install --npm --directory . --force
 
+          # 4. Installation des plugins nécessaires (SQLite, Gradient, etc.)
+          npm install react-native-sqlite-storage lucide-react-native react-native-svg react-native-linear-gradient react-native-image-picker react-native-signature-canvas react-native-webview
+          
       - name: Bundle JavaScript
         script: |
+          # Création du dossier assets pour le mode sans internet
           mkdir -p android/app/src/main/assets
           npx react-native bundle \
             --platform android \
@@ -40,14 +33,16 @@ workflows:
 
       - name: Build APK
         script: |
-          # On n'utilise PAS ./gradlew (qui pose problème)
-          # On utilise 'gradle' installé sur la machine Codemagic
           cd android
-          gradle assembleDebug --no-daemon
+          # On répare les permissions du lanceur Gradle
+          chmod +x gradlew
+          # On lance la compilation avec une limite de mémoire pour éviter le StackOverflow
+          export GRADLE_OPTS="-Xmx2048m -Xss4m"
+          ./gradlew assembleDebug --no-daemon
           
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
     publishing:
       email:
         recipients:
-          - ton-email@exemple.com
+          - votre-email@exemple.com
