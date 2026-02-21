@@ -41,7 +41,7 @@ workflows:
                   mavenCentral()
                   maven { url "$CM_BUILD_DIR/node_modules/react-native/android" } 
               }
-              # AJOUT : Force la compatibilité pour les vieilles librairies comme SQLite
+              // Correction : Utilisation de // pour les commentaires Gradle
               configurations.all {
                   resolutionStrategy {
                       force "androidx.appcompat:appcompat:1.4.1"
@@ -63,7 +63,6 @@ workflows:
                   versionName "1.0"
                   multiDexEnabled true
               }
-              # AJOUT : Aide Gradle à ignorer les différences de configuration
               buildTypes {
                   debug {
                       matchingFallbacks = ['release']
@@ -104,47 +103,4 @@ workflows:
           import java.util.List;
           public class MainApplication extends MultiDexApplication implements ReactApplication {
             private final ReactNativeHost mReactNativeHost = new ReactNativeHost(this) {
-              @Override public boolean getUseDeveloperSupport() { return false; }
-              @Override protected List<ReactPackage> getPackages() { 
-                return Arrays.<ReactPackage>asList(
-                  new MainReactPackage(),
-                  new SQLitePluginPackage()
-                ); 
-              }
-              @Override protected String getJSMainModuleName() { return "index"; }
-              @Override protected String getJSBundleFile() { return "assets://index.android.bundle"; }
-            };
-            @Override public ReactNativeHost getReactNativeHost() { return mReactNativeHost; }
-            @Override public void onCreate() { super.onCreate(); SoLoader.init(this, false); }
-          }
-          EOF
-
-          cat <<EOF > android/app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
-              <uses-permission android:name="android.permission.INTERNET" />
-              <application android:name=".MainApplication" android:label="SuppliesTracker" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-                  <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-
-      - name: Build JS Bundle
-        script: |
-          npx react-native bundle --platform android --dev false --entry-file index.js \
-            --bundle-output android/app/src/main/assets/index.android.bundle \
-            --assets-dest android/app/src/main/res
-
-      - name: Build APK
-        script: |
-          cd android
-          gradle wrapper --gradle-version 7.5
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
-          
-    artifacts:
-      - "**/build/outputs/apk/**/*.apk"
+              @Override public boolean getUseDeveloperSupport() { return false;
