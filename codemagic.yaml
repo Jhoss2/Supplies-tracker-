@@ -6,22 +6,18 @@ workflows:
     scripts:
       - name: Setup and Install
         script: |
-          # 1. Configuration Java et JS
           sdk use java 17.0.7-sem || true
           cp "App (1).js" App.js || true
           npm install --quiet
 
-          # 2. Structure Android
           rm -rf android
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/assets
 
-          # 3. Configuration Build (Correction AndroidX ajoutée ici)
           echo "rootProject.name = 'SuppliesTracker'" > android/settings.gradle
           echo "include ':app'" >> android/settings.gradle
 
-          # Activation indispensable de AndroidX
           cat <<EOF > android/gradle.properties
           android.useAndroidX=true
           android.enableJetifier=true
@@ -33,11 +29,7 @@ workflows:
               dependencies { classpath("com.android.tools.build:gradle:7.4.2") }
           }
           allprojects {
-              repositories { 
-                  google()
-                  mavenCentral()
-                  maven { url "$CM_BUILD_DIR/node_modules/react-native/android" } 
-              }
+              repositories { google(); mavenCentral(); maven { url "$CM_BUILD_DIR/node_modules/react-native/android" } }
           }
           EOF
 
@@ -58,11 +50,11 @@ workflows:
           dependencies {
               implementation "com.facebook.react:react-android:0.72.6"
               implementation "com.facebook.react:hermes-android:0.72.6"
+              implementation "com.facebook.soloader:soloader:0.10.5"
               implementation "androidx.appcompat:appcompat:1.4.1"
           }
           EOF
 
-          # 4. Java Sources & Manifest
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainActivity.java
           package com.suppliestracker;
           import com.facebook.react.ReactActivity;
@@ -71,6 +63,7 @@ workflows:
           }
           EOF
 
+          # MODIFICATION ICI : On force le chemin du bundle pour éviter l'écran blanc
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainApplication.java
           package com.suppliestracker;
           import android.app.Application;
@@ -86,6 +79,7 @@ workflows:
               @Override public boolean getUseDeveloperSupport() { return false; }
               @Override protected List<ReactPackage> getPackages() { return Arrays.<ReactPackage>asList(new MainReactPackage()); }
               @Override protected String getJSMainModuleName() { return "index"; }
+              @Override protected String getJSBundleFile() { return "assets://index.android.bundle"; }
             };
             @Override public ReactNativeHost getReactNativeHost() { return mReactNativeHost; }
             @Override public void onCreate() { super.onCreate(); SoLoader.init(this, false); }
@@ -94,6 +88,7 @@ workflows:
 
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
+              <uses-permission android:name="android.permission.INTERNET" />
               <application android:name=".MainApplication" android:label="SuppliesTracker" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
@@ -117,9 +112,6 @@ workflows:
           gradle wrapper --gradle-version 7.5
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
-          
-          echo "Recherche de l'APK finale :"
-          find . -name "*.apk"
           
     artifacts:
       - "**/build/outputs/apk/**/*.apk"
