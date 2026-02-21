@@ -6,15 +6,18 @@ workflows:
     scripts:
       - name: Setup and Install
         script: |
+          # 1. Préparation Environnement
           sdk use java 17.0.7-sem || true
           cp "App (1).js" App.js || true
           npm install --quiet
-          
+
+          # 2. Structure Android complète
           rm -rf android
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/assets
 
+          # 3. Configuration Build
           echo "rootProject.name = 'SuppliesTracker'" > android/settings.gradle
           echo "include ':app'" >> android/settings.gradle
 
@@ -44,6 +47,8 @@ workflows:
                   versionCode 1
                   versionName "1.0"
               }
+              // Force le nom de sortie
+              project.archivesBaseName = "SuppliesTracker"
           }
           dependencies {
               implementation "com.facebook.react:react-android:0.72.6"
@@ -52,6 +57,7 @@ workflows:
           }
           EOF
 
+          # 4. Java & Manifest
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainActivity.java
           package com.suppliestracker;
           import com.facebook.react.ReactActivity;
@@ -94,26 +100,24 @@ workflows:
           </manifest>
           EOF
 
-      - name: Build APK
+      - name: Build JS Bundle
         script: |
-          # 1. Bundle JS
+          # Cette étape transforme ton code React en fichier lisible par Android
           npx react-native bundle --platform android --dev false --entry-file App.js \
             --bundle-output android/app/src/main/assets/index.android.bundle \
             --assets-dest android/app/src/main/res
 
-          # 2. Build Gradle
+      - name: Build APK
+        script: |
           cd android
           gradle wrapper --gradle-version 7.5
           chmod +x gradlew
+          # On lance la compilation réelle
           ./gradlew assembleDebug --no-daemon
-
-          # 3. DIAGNOSTIC FORCE : On cherche l'APK et on le déplace de force à la racine
-          echo "Listing des fichiers APK trouvés :"
+          
+          # Vérification de l'existence de l'APK dans les logs
           find . -name "*.apk"
           
-          # On copie tout ce qui finit par .apk vers la racine du projet pour Codemagic
-          find . -name "*.apk" -exec cp {} .. \;
-
     artifacts:
-      # On prend TOUS les APKs trouvés à la racine
-      - "*.apk"
+      # Recherche récursive pour ne rien rater
+      - "**/build/outputs/apk/**/*.apk"
