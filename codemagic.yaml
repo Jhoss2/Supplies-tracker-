@@ -44,6 +44,7 @@ workflows:
                   targetSdkVersion 33
                   versionCode 1
                   versionName "1.0"
+                  multiDexEnabled true
               }
               project.archivesBaseName = "SuppliesTracker"
           }
@@ -52,6 +53,7 @@ workflows:
               implementation "com.facebook.react:hermes-android:0.72.6"
               implementation "com.facebook.soloader:soloader:0.10.5"
               implementation "androidx.appcompat:appcompat:1.4.1"
+              implementation "androidx.multidex:multidex:2.0.1"
           }
           EOF
 
@@ -63,10 +65,10 @@ workflows:
           }
           EOF
 
-          # MODIFICATION ICI : On force le chemin du bundle pour éviter l'écran blanc
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainApplication.java
           package com.suppliestracker;
           import android.app.Application;
+          import androidx.multidex.MultiDexApplication;
           import com.facebook.react.ReactApplication;
           import com.facebook.react.ReactNativeHost;
           import com.facebook.react.ReactPackage;
@@ -74,7 +76,7 @@ workflows:
           import com.facebook.soloader.SoLoader;
           import java.util.Arrays;
           import java.util.List;
-          public class MainApplication extends Application implements ReactApplication {
+          public class MainApplication extends MultiDexApplication implements ReactApplication {
             private final ReactNativeHost mReactNativeHost = new ReactNativeHost(this) {
               @Override public boolean getUseDeveloperSupport() { return false; }
               @Override protected List<ReactPackage> getPackages() { return Arrays.<ReactPackage>asList(new MainReactPackage()); }
@@ -90,7 +92,7 @@ workflows:
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
               <uses-permission android:name="android.permission.INTERNET" />
               <application android:name=".MainApplication" android:label="SuppliesTracker" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-                  <activity android:name=".MainActivity" android:exported="true">
+                  <activity android:name=".MainActivity" android:exported="true" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|uiMode" android:launchMode="singleTask" android:windowSoftInputMode="adjustResize">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
