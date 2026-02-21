@@ -7,11 +7,9 @@ workflows:
       - name: Setup and Install
         script: |
           sdk use java 17.0.7-sem || true
-          
-          # 1. On renomme ton fichier en App.js
           cp "App (1).js" App.js || true
           
-          # 2. On CRÉE un fichier index.js (obligatoire pour le bundle)
+          # Création du point d'entrée standard
           cat <<EOF > index.js
           import {AppRegistry} from 'react-native';
           import App from './App';
@@ -39,10 +37,15 @@ workflows:
               dependencies { classpath("com.android.tools.build:gradle:7.4.2") }
           }
           allprojects {
-              repositories { google(); mavenCentral(); maven { url "$CM_BUILD_DIR/node_modules/react-native/android" } }
+              repositories { 
+                  google()
+                  mavenCentral()
+                  maven { url "$CM_BUILD_DIR/node_modules/react-native/android" } 
+              }
           }
           EOF
 
+          # MODIFICATION 1 : Ajout de SQLite dans le build.gradle
           cat <<EOF > android/app/build.gradle
           apply plugin: "com.android.application"
           android {
@@ -56,16 +59,19 @@ workflows:
                   versionName "1.0"
                   multiDexEnabled true
               }
-              project.archivesBaseName = "SuppliesTracker"
           }
           dependencies {
               implementation "com.facebook.react:react-android:0.72.6"
               implementation "com.facebook.react:hermes-android:0.72.6"
-              implementation "com.facebook.soloader:soloader:0.10.5"
+              implementation project(':react-native-sqlite-storage')
               implementation "androidx.appcompat:appcompat:1.4.1"
               implementation "androidx.multidex:multidex:2.0.1"
           }
           EOF
+
+          # MODIFICATION 2 : Déclaration de SQLite dans settings.gradle pour que Gradle le trouve
+          echo "include ':react-native-sqlite-storage'" >> android/settings.gradle
+          echo "project(':react-native-sqlite-storage').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-sqlite-storage/src/android')" >> android/settings.gradle
 
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainActivity.java
           package com.suppliestracker;
@@ -75,6 +81,7 @@ workflows:
           }
           EOF
 
+          # MODIFICATION 3 : Importation manuelle du package SQLite dans MainApplication
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainApplication.java
           package com.suppliestracker;
           import android.app.Application;
@@ -84,12 +91,18 @@ workflows:
           import com.facebook.react.ReactPackage;
           import com.facebook.react.shell.MainReactPackage;
           import com.facebook.soloader.SoLoader;
+          import org.pgsqlite.SQLitePluginPackage;
           import java.util.Arrays;
           import java.util.List;
           public class MainApplication extends MultiDexApplication implements ReactApplication {
             private final ReactNativeHost mReactNativeHost = new ReactNativeHost(this) {
               @Override public boolean getUseDeveloperSupport() { return false; }
-              @Override protected List<ReactPackage> getPackages() { return Arrays.<ReactPackage>asList(new MainReactPackage()); }
+              @Override protected List<ReactPackage> getPackages() { 
+                return Arrays.<ReactPackage>asList(
+                  new MainReactPackage(),
+                  new SQLitePluginPackage()
+                ); 
+              }
               @Override protected String getJSMainModuleName() { return "index"; }
               @Override protected String getJSBundleFile() { return "assets://index.android.bundle"; }
             };
@@ -114,7 +127,6 @@ workflows:
 
       - name: Build JS Bundle
         script: |
-          # Ici on pointe vers index.js qu'on vient de créer
           npx react-native bundle --platform android --dev false --entry-file index.js \
             --bundle-output android/app/src/main/assets/index.android.bundle \
             --assets-dest android/app/src/main/res
