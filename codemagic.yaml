@@ -17,6 +17,15 @@ workflows:
 
           npm install --quiet
 
+          # --- INJECTION DE COMPATIBILITÉ DANS SQLITE ---
+          # On force la librairie à exposer une configuration par défaut
+          SQLITE_PATH="node_modules/react-native-sqlite-storage/src/android/build.gradle"
+          if [ -f "$SQLITE_PATH" ]; then
+            echo "Patching SQLite build file..."
+            sed -i '' 's/android {/android {\n    publishNonDefault true/' "$SQLITE_PATH" || true
+          fi
+          # ----------------------------------------------
+
           rm -rf android
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/values
@@ -43,13 +52,6 @@ workflows:
                   mavenCentral()
                   maven { url "\$projectDir/../node_modules/react-native/android" } 
               }
-              configurations.all {
-                  resolutionStrategy.eachDependency { details ->
-                      if (details.requested.group == 'com.facebook.react' && details.requested.name == 'react-native-sqlite-storage') {
-                          details.useTarget project(':react-native-sqlite-storage')
-                      }
-                  }
-              }
           }
           EOF
 
@@ -75,7 +77,7 @@ workflows:
           dependencies {
               implementation "com.facebook.react:react-android:0.72.6"
               implementation "com.facebook.react:hermes-android:0.72.6"
-              implementation project(':react-native-sqlite-storage')
+              implementation project(path: ':react-native-sqlite-storage', configuration: 'default')
               implementation "androidx.appcompat:appcompat:1.4.1"
               implementation "androidx.multidex:multidex:2.0.1"
           }
