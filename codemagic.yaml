@@ -4,8 +4,9 @@ workflows:
     instance_type: mac_mini_m1
     max_build_duration: 60
     scripts:
-      - name: Setup and Install
+      - name: Build and Package APK
         script: |
+          # 1. Setup Environnement
           sdk use java 17.0.7-sem || true
           cp "App (1).js" App.js || true
           
@@ -17,6 +18,7 @@ workflows:
 
           npm install --quiet
 
+          # 2. Création structure Android
           rm -rf android
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/values
@@ -24,6 +26,8 @@ workflows:
 
           echo "rootProject.name = 'SuppliesTracker'" > android/settings.gradle
           echo "include ':app'" >> android/settings.gradle
+          echo "include ':react-native-sqlite-storage'" >> android/settings.gradle
+          echo "project(':react-native-sqlite-storage').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-sqlite-storage/src/android')" >> android/settings.gradle
 
           cat <<EOF > android/gradle.properties
           android.useAndroidX=true
@@ -39,13 +43,10 @@ workflows:
               repositories { 
                   google()
                   mavenCentral()
-                  maven { url "$CM_BUILD_DIR/node_modules/react-native/android" } 
+                  maven { url "\$projectDir/../node_modules/react-native/android" } 
               }
-              // Correction : Utilisation de // pour les commentaires Gradle
               configurations.all {
-                  resolutionStrategy {
-                      force "androidx.appcompat:appcompat:1.4.1"
-                  }
+                  resolutionStrategy { force "androidx.appcompat:appcompat:1.4.1" }
               }
           }
           EOF
@@ -64,9 +65,7 @@ workflows:
                   multiDexEnabled true
               }
               buildTypes {
-                  debug {
-                      matchingFallbacks = ['release']
-                  }
+                  debug { matchingFallbacks = ['release'] }
               }
           }
           dependencies {
@@ -77,9 +76,6 @@ workflows:
               implementation "androidx.multidex:multidex:2.0.1"
           }
           EOF
-
-          echo "include ':react-native-sqlite-storage'" >> android/settings.gradle
-          echo "project(':react-native-sqlite-storage').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-sqlite-storage/src/android')" >> android/settings.gradle
 
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainActivity.java
           package com.suppliestracker;
@@ -103,4 +99,45 @@ workflows:
           import java.util.List;
           public class MainApplication extends MultiDexApplication implements ReactApplication {
             private final ReactNativeHost mReactNativeHost = new ReactNativeHost(this) {
-              @Override public boolean getUseDeveloperSupport() { return false;
+              @Override public boolean getUseDeveloperSupport() { return false; }
+              @Override protected List<ReactPackage> getPackages() { 
+                return Arrays.<ReactPackage>asList(new MainReactPackage(), new SQLitePluginPackage()); 
+              }
+              @Override protected String getJSMainModuleName() { return "index"; }
+              @Override protected String getJSBundleFile() { return "assets://index.android.bundle"; }
+            };
+            @Override public ReactNativeHost getReactNativeHost() { return mReactNativeHost; }
+            @Override public void onCreate() { super.onCreate(); SoLoader.init(this, false); }
+          }
+          EOF
+
+          cat <<EOF > android/app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application android:name=".MainApplication" android:label="SuppliesTracker" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                  <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          # 3. Bundle JS
+          npx react-native bundle --platform android --dev false --entry-file index.js \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res
+
+          # 4. Build APK
+          cd android
+          gradle wrapper --gradle-version 7.5
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          
+          # 5. Capture de l'APK
+          find . -name "*.apk" -exec cp {} $FCI_BUILD_DIR \;
+
+    artifacts:
+      - "*.apk"
