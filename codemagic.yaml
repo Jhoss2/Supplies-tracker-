@@ -19,7 +19,6 @@ workflows:
 
           # 2. Structure Android
           rm -rf android
-          mkdir -p android/app/src/main/java/com/suppliestracker/android/app/src/main/res/values/android/app/src/main/assets
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/assets
@@ -60,27 +59,15 @@ workflows:
                   versionCode 1
                   versionName "1.0"
                   multiDexEnabled true
+                  # SOLUTION : Indique aux librairies externes quelle config utiliser
+                  missingDimensionStrategy 'default', 'release'
               }
               buildTypes {
-                  release {
-                      minifyEnabled false
-                  }
                   debug {
-                      // Cette ligne force l'utilisation de la config 'release' de SQLite si 'debug' manque
                       matchingFallbacks = ['release']
                   }
               }
           }
-          
-          // Force la résolution pour les modules sans attributs comme SQLite
-          configurations.all {
-              resolutionStrategy.eachDependency { DependencyResolveDetails details ->
-                  if (details.requested.name == 'react-native-sqlite-storage') {
-                      details.useTarget project(':react-native-sqlite-storage')
-                  }
-              }
-          }
-
           dependencies {
               implementation "com.facebook.react:react-android:0.72.6"
               implementation "com.facebook.react:hermes-android:0.72.6"
@@ -150,8 +137,5 @@ workflows:
           ./gradlew assembleDebug --no-daemon || exit 1
           
           # 5. Export
-          mkdir -p $CM_EXPORT_DIR
-          find . -name "*.apk" -exec cp {} $CM_EXPORT_DIR/app-debug.apk \;
-
-    artifacts:
-      - $CM_EXPORT_DIR/*.apk
+          mkdir -p \$CM_EXPORT_DIR
+          find . -name "*.apk" -exec cp {} \$CM_EXPORT_DIR/app-debug.apk \;
