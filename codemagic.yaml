@@ -9,7 +9,6 @@ workflows:
           sdk use java 17.0.7-sem || true
           cp "App (1).js" App.js || true
           
-          # Création du point d'entrée standard
           cat <<EOF > index.js
           import {AppRegistry} from 'react-native';
           import App from './App';
@@ -42,10 +41,15 @@ workflows:
                   mavenCentral()
                   maven { url "$CM_BUILD_DIR/node_modules/react-native/android" } 
               }
+              # AJOUT : Force la compatibilité pour les vieilles librairies comme SQLite
+              configurations.all {
+                  resolutionStrategy {
+                      force "androidx.appcompat:appcompat:1.4.1"
+                  }
+              }
           }
           EOF
 
-          # MODIFICATION 1 : Ajout de SQLite dans le build.gradle
           cat <<EOF > android/app/build.gradle
           apply plugin: "com.android.application"
           android {
@@ -59,6 +63,12 @@ workflows:
                   versionName "1.0"
                   multiDexEnabled true
               }
+              # AJOUT : Aide Gradle à ignorer les différences de configuration
+              buildTypes {
+                  debug {
+                      matchingFallbacks = ['release']
+                  }
+              }
           }
           dependencies {
               implementation "com.facebook.react:react-android:0.72.6"
@@ -69,7 +79,6 @@ workflows:
           }
           EOF
 
-          # MODIFICATION 2 : Déclaration de SQLite dans settings.gradle pour que Gradle le trouve
           echo "include ':react-native-sqlite-storage'" >> android/settings.gradle
           echo "project(':react-native-sqlite-storage').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-sqlite-storage/src/android')" >> android/settings.gradle
 
@@ -81,7 +90,6 @@ workflows:
           }
           EOF
 
-          # MODIFICATION 3 : Importation manuelle du package SQLite dans MainApplication
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainApplication.java
           package com.suppliestracker;
           import android.app.Application;
