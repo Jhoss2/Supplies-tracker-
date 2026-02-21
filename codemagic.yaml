@@ -9,7 +9,6 @@ workflows:
           # 1. Setup
           sdk use java 17.0.7-sem || true
           cp "App (1).js" App.js || true
-          
           cat <<EOF > index.js
           import {AppRegistry} from 'react-native';
           import App from './App';
@@ -20,6 +19,7 @@ workflows:
 
           # 2. Structure Android
           rm -rf android
+          mkdir -p android/app/src/main/java/com/suppliestracker/android/app/src/main/res/values/android/app/src/main/assets
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/assets
@@ -62,9 +62,25 @@ workflows:
                   multiDexEnabled true
               }
               buildTypes {
-                  debug { matchingFallbacks = ['release'] }
+                  release {
+                      minifyEnabled false
+                  }
+                  debug {
+                      // Cette ligne force l'utilisation de la config 'release' de SQLite si 'debug' manque
+                      matchingFallbacks = ['release']
+                  }
               }
           }
+          
+          // Force la résolution pour les modules sans attributs comme SQLite
+          configurations.all {
+              resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+                  if (details.requested.name == 'react-native-sqlite-storage') {
+                      details.useTarget project(':react-native-sqlite-storage')
+                  }
+              }
+          }
+
           dependencies {
               implementation "com.facebook.react:react-android:0.72.6"
               implementation "com.facebook.react:hermes-android:0.72.6"
@@ -74,7 +90,6 @@ workflows:
           }
           EOF
 
-          # Sources Java
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainActivity.java
           package com.suppliestracker;
           import com.facebook.react.ReactActivity;
@@ -132,16 +147,11 @@ workflows:
           cd android
           gradle wrapper --gradle-version 7.5
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon || exit 1
           
-          # 5. VERIFICATION ET COPIE
-          echo "Contenu du dossier build final :"
-          ls -R app/build/outputs/apk/
-          
-          # On copie explicitement vers le dossier de sortie de Codemagic
+          # 5. Export
           mkdir -p $CM_EXPORT_DIR
           find . -name "*.apk" -exec cp {} $CM_EXPORT_DIR/app-debug.apk \;
-          echo "Fichier copié dans $CM_EXPORT_DIR"
 
     artifacts:
       - $CM_EXPORT_DIR/*.apk
