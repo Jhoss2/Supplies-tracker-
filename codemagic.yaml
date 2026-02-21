@@ -6,7 +6,7 @@ workflows:
     scripts:
       - name: Build and Package APK
         script: |
-          # 1. Setup Environnement
+          # 1. Setup
           sdk use java 17.0.7-sem || true
           cp "App (1).js" App.js || true
           
@@ -18,7 +18,7 @@ workflows:
 
           npm install --quiet
 
-          # 2. Création structure Android
+          # 2. Structure Android
           rm -rf android
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/values
@@ -44,9 +44,6 @@ workflows:
                   google()
                   mavenCentral()
                   maven { url "\$projectDir/../node_modules/react-native/android" } 
-              }
-              configurations.all {
-                  resolutionStrategy { force "androidx.appcompat:appcompat:1.4.1" }
               }
           }
           EOF
@@ -77,6 +74,7 @@ workflows:
           }
           EOF
 
+          # Sources Java
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainActivity.java
           package com.suppliestracker;
           import com.facebook.react.ReactActivity;
@@ -136,8 +134,14 @@ workflows:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
           
-          # 5. Capture de l'APK
-          find . -name "*.apk" -exec cp {} $FCI_BUILD_DIR \;
+          # 5. VERIFICATION ET COPIE
+          echo "Contenu du dossier build final :"
+          ls -R app/build/outputs/apk/
+          
+          # On copie explicitement vers le dossier de sortie de Codemagic
+          mkdir -p $CM_EXPORT_DIR
+          find . -name "*.apk" -exec cp {} $CM_EXPORT_DIR/app-debug.apk \;
+          echo "Fichier copié dans $CM_EXPORT_DIR"
 
     artifacts:
-      - "*.apk"
+      - $CM_EXPORT_DIR/*.apk
