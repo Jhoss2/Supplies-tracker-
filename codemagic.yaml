@@ -6,7 +6,7 @@ workflows:
     scripts:
       - name: Build and Package APK
         script: |
-          # 1. Initialisation
+          # 1. Setup
           sdk use java 17.0.7-sem || true
           cp "App (1).js" App.js || true
           
@@ -18,17 +18,8 @@ workflows:
 
           npm install --quiet
 
-          # --- ÉTAPE CRUCIALE : PATCH DE LA BIBLIOTHÈQUE SQLITE ---
-          # On injecte 'checkManifest true' dans le build.gradle de SQLite pour satisfaire Gradle 7+
-          SQLITE_GRADLE="node_modules/react-native-sqlite-storage/src/android/build.gradle"
-          if [ -f "$SQLITE_GRADLE" ]; then
-            sed -i '' 's/android {/android {\n    publishNonDefault true/' "$SQLITE_GRADLE" || true
-          fi
-          # -------------------------------------------------------
-
-          # 2. Structure Android
+          # 2. Reconstruction propre du dossier Android
           rm -rf android
-          mkdir -p android/app/src/main/java/com/suppliestracker/android/app/src/main/res/values/android/app/src/main/assets
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/assets
@@ -54,6 +45,14 @@ workflows:
                   mavenCentral()
                   maven { url "\$projectDir/../node_modules/react-native/android" } 
               }
+              # FORCE LA COMPATIBILITÉ SQLITE ICI
+              configurations.all {
+                  resolutionStrategy {
+                      capabilitiesResolution.withCapability("com.facebook.react:react-native-sqlite-storage") {
+                          select("project :react-native-sqlite-storage")
+                      }
+                  }
+              }
           }
           EOF
 
@@ -72,6 +71,7 @@ workflows:
               }
               buildTypes {
                   debug {
+                      # On force l'utilisation de la version release de SQLite pour le build debug
                       matchingFallbacks = ['release']
                   }
               }
@@ -97,3 +97,56 @@ workflows:
           package com.suppliestracker;
           import android.app.Application;
           import androidx.multidex.MultiDexApplication;
+          import com.facebook.react.ReactApplication;
+          import com.facebook.react.ReactNativeHost;
+          import com.facebook.react.ReactPackage;
+          import com.facebook.react.shell.MainReactPackage;
+          import com.facebook.soloader.SoLoader;
+          import org.pgsqlite.SQLitePluginPackage;
+          import java.util.Arrays;
+          import java.util.List;
+          public class MainApplication extends MultiDexApplication implements ReactApplication {
+            private final ReactNativeHost mReactNativeHost = new ReactNativeHost(this) {
+              @Override public boolean getUseDeveloperSupport() { return false; }
+              @Override protected List<ReactPackage> getPackages() { 
+                return Arrays.<ReactPackage>asList(new MainReactPackage(), new SQLitePluginPackage()); 
+              }
+              @Override protected String getJSMainModuleName() { return "index"; }
+              @Override protected String getJSBundleFile() { return "assets://index.android.bundle"; }
+            };
+            @Override public ReactNativeHost getReactNativeHost() { return mReactNativeHost; }
+            @Override public void onCreate() { super.onCreate(); SoLoader.init(this, false); }
+          }
+          EOF
+
+          cat <<EOF > android/app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.suppliestracker">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application android:name=".MainApplication" android:label="SuppliesTracker" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                  <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          # Bundle JS
+          npx react-native bundle --platform android --dev false --entry-file index.js \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res
+
+          # Build APK
+          cd android
+          gradle wrapper --gradle-version 7.5
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon || exit 1
+          
+          # Collecte de l'artifact
+          mkdir -p \$CM_EXPORT_DIR
+          find . -name "*.apk" -exec cp {} \$CM_EXPORT_DIR/app-debug.apk \;
+
+    artifacts:
+      - \$CM_EXPORT_DIR/*.apk
