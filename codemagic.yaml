@@ -6,20 +6,26 @@ workflows:
     scripts:
       - name: Setup and Install
         script: |
-          # 1. Préparation Environnement
+          # 1. Configuration Java et JS
           sdk use java 17.0.7-sem || true
           cp "App (1).js" App.js || true
           npm install --quiet
 
-          # 2. Structure Android complète
+          # 2. Structure Android
           rm -rf android
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/values
           mkdir -p android/app/src/main/assets
 
-          # 3. Configuration Build
+          # 3. Configuration Build (Correction AndroidX ajoutée ici)
           echo "rootProject.name = 'SuppliesTracker'" > android/settings.gradle
           echo "include ':app'" >> android/settings.gradle
+
+          # Activation indispensable de AndroidX
+          cat <<EOF > android/gradle.properties
+          android.useAndroidX=true
+          android.enableJetifier=true
+          EOF
 
           cat <<EOF > android/build.gradle
           buildscript {
@@ -47,7 +53,6 @@ workflows:
                   versionCode 1
                   versionName "1.0"
               }
-              // Force le nom de sortie
               project.archivesBaseName = "SuppliesTracker"
           }
           dependencies {
@@ -57,7 +62,7 @@ workflows:
           }
           EOF
 
-          # 4. Java & Manifest
+          # 4. Java Sources & Manifest
           cat <<EOF > android/app/src/main/java/com/suppliestracker/MainActivity.java
           package com.suppliestracker;
           import com.facebook.react.ReactActivity;
@@ -102,7 +107,6 @@ workflows:
 
       - name: Build JS Bundle
         script: |
-          # Cette étape transforme ton code React en fichier lisible par Android
           npx react-native bundle --platform android --dev false --entry-file App.js \
             --bundle-output android/app/src/main/assets/index.android.bundle \
             --assets-dest android/app/src/main/res
@@ -112,12 +116,10 @@ workflows:
           cd android
           gradle wrapper --gradle-version 7.5
           chmod +x gradlew
-          # On lance la compilation réelle
           ./gradlew assembleDebug --no-daemon
           
-          # Vérification de l'existence de l'APK dans les logs
+          echo "Recherche de l'APK finale :"
           find . -name "*.apk"
           
     artifacts:
-      # Recherche récursive pour ne rien rater
       - "**/build/outputs/apk/**/*.apk"
