@@ -6,9 +6,9 @@ workflows:
     scripts:
       - name: Build and Package APK
         script: |
-          # 1. Setup
           sdk use java 17.0.7-sem || true
           cp "App (1).js" App.js || true
+          
           cat <<EOF > index.js
           import {AppRegistry} from 'react-native';
           import App from './App';
@@ -17,7 +17,6 @@ workflows:
 
           npm install --quiet
 
-          # 2. Structure Android
           rm -rf android
           mkdir -p android/app/src/main/java/com/suppliestracker
           mkdir -p android/app/src/main/res/values
@@ -59,7 +58,6 @@ workflows:
                   versionCode 1
                   versionName "1.0"
                   multiDexEnabled true
-                  # SOLUTION : Indique aux librairies externes quelle config utiliser
                   missingDimensionStrategy 'default', 'release'
               }
               buildTypes {
@@ -125,17 +123,17 @@ workflows:
           </manifest>
           EOF
 
-          # 3. Bundle JS
           npx react-native bundle --platform android --dev false --entry-file index.js \
             --bundle-output android/app/src/main/assets/index.android.bundle \
             --assets-dest android/app/src/main/res
 
-          # 4. Build APK
           cd android
           gradle wrapper --gradle-version 7.5
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon || exit 1
           
-          # 5. Export
           mkdir -p \$CM_EXPORT_DIR
           find . -name "*.apk" -exec cp {} \$CM_EXPORT_DIR/app-debug.apk \;
+
+    artifacts:
+      - \$CM_EXPORT_DIR/*.apk
