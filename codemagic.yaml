@@ -60,28 +60,21 @@ workflows:
                   multiDexEnabled true
               }
               
-              // Force Gradle à accepter les projets sans dimensions (comme SQLite)
               buildTypes {
                   debug {
-                      matchingFallbacks = ['release', 'debug']
-                  }
-                  release {
+                      // On force Gradle à accepter n'importe quelle version trouvée
                       matchingFallbacks = ['release']
                   }
-              }
-          }
-
-          // SOLUTION : On force la configuration de la dépendance SQLite
-          configurations.all {
-              resolutionStrategy.dependencySubstitution {
-                  substitute project(':react-native-sqlite-storage') because "force link" with project(':react-native-sqlite-storage')
               }
           }
 
           dependencies {
               implementation "com.facebook.react:react-android:0.72.6"
               implementation "com.facebook.react:hermes-android:0.72.6"
-              implementation project(path: ':react-native-sqlite-storage', configuration: 'default')
+              
+              // Utilisation de la syntaxe la plus simple possible
+              implementation project(':react-native-sqlite-storage')
+              
               implementation "androidx.appcompat:appcompat:1.4.1"
               implementation "androidx.multidex:multidex:2.0.1"
           }
