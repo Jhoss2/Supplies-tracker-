@@ -17,14 +17,30 @@ workflows:
 
           npm install --quiet
 
-          # --- INJECTION DE COMPATIBILITÉ DANS SQLITE ---
-          # On force la librairie à exposer une configuration par défaut
-          SQLITE_PATH="node_modules/react-native-sqlite-storage/src/android/build.gradle"
-          if [ -f "$SQLITE_PATH" ]; then
-            echo "Patching SQLite build file..."
-            sed -i '' 's/android {/android {\n    publishNonDefault true/' "$SQLITE_PATH" || true
-          fi
-          # ----------------------------------------------
+          # --- RÉÉCRITURE TOTALE DU BUILD.GRADLE DE SQLITE ---
+          # On écrase le fichier original par une version propre et compatible
+          mkdir -p node_modules/react-native-sqlite-storage/src/android
+          cat <<EOF > node_modules/react-native-sqlite-storage/src/android/build.gradle
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath("com.android.tools.build:gradle:7.4.2") }
+          }
+          apply plugin: 'com.android.library'
+          android {
+              compileSdkVersion 33
+              namespace "org.pgsqlite"
+              defaultConfig {
+                  minSdkVersion 21
+                  targetSdkVersion 33
+              }
+              lintOptions { abortOnError false }
+          }
+          repositories { google(); mavenCentral() }
+          dependencies {
+              implementation "com.facebook.react:react-android:0.72.6"
+          }
+          EOF
+          # ---------------------------------------------------
 
           rm -rf android
           mkdir -p android/app/src/main/java/com/suppliestracker
@@ -77,7 +93,7 @@ workflows:
           dependencies {
               implementation "com.facebook.react:react-android:0.72.6"
               implementation "com.facebook.react:hermes-android:0.72.6"
-              implementation project(path: ':react-native-sqlite-storage', configuration: 'default')
+              implementation project(':react-native-sqlite-storage')
               implementation "androidx.appcompat:appcompat:1.4.1"
               implementation "androidx.multidex:multidex:2.0.1"
           }
