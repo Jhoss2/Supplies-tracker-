@@ -80,3 +80,4 @@ export const getAllTransactions = async () =>
      JOIN rooms r ON t.room_id = r.id
      ORDER BY t.created_at DESC`
   );
+
