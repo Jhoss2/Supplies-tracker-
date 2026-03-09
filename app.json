@@ -35,8 +35,7 @@
         {
           "initialOrientation": "LANDSCAPE"
         }
-      ],
-      "expo-sqlite"
+      ]
     ],
     "extra": {
       "eas": {
