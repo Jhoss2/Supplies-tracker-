@@ -5,6 +5,7 @@
     "version": "1.0.0",
     "orientation": "landscape",
     "userInterfaceStyle": "light",
+    "newArchEnabled": false,
     "android": {
       "package": "com.uauben.suppliestracker",
       "permissions": [
@@ -14,6 +15,7 @@
       ]
     },
     "plugins": [
+      "expo-sqlite",
       [
         "expo-camera",
         {
@@ -25,12 +27,18 @@
         {
           "initialOrientation": "LANDSCAPE"
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "buildToolsVersion": "34.0.0",
+            "kotlinVersion": "1.9.24"
+          }
+        }
       ]
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
-      }
-    }
+    ]
   }
 }
