@@ -19,7 +19,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow U-AUBEN to access your camera for card scanning."
+          "cameraPermission": "Allow U-AUBEN to access your camera."
         }
       ],
       [
@@ -35,7 +35,9 @@
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
             "buildToolsVersion": "35.0.0",
-            "kotlinVersion": "1.9.25"
+            "kotlinVersion": "1.9.25",
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
           }
         }
       ]
