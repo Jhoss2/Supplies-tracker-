@@ -6,8 +6,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-// import TextRecognition from '@react-native-ml-kit/text-recognition';
-const TextRecognition = { recognize: async () => ({ text: '' }) }; // mock temporaire
+import TextRecognition from '@react-native-ml-kit/text-recognition';
 import * as Crypto from 'expo-crypto';
 import { createUser, saveBiometricCard } from '../database/userQueries';
 import PillHeader from '../components/PillHeader';
