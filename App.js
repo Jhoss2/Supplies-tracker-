@@ -7,26 +7,25 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import { AppProvider } from './app/context/AppContext';
 import { initDatabase } from './app/database/db';
 
-// Screens
-import HomeScreen from './app/Screens/HomeScreen';
-import UserProfileListScreen from './app/Screens/UserProfileListScreen';
-import UserProfileScreen from './app/Screens/UserProfileScreen';
-import CreateProfileScreen from './app/Screens/CreateProfileScreen';
-import RoomProfileScreen from './app/Screens/RoomProfileScreen';
-import MaterialSelectionScreen from './app/Screens/MaterialSelectionScreen';
-import MaterialListTakenScreen from './app/Screens/MaterialListTakenScreen';
-import SignatureFirstScreen from './app/Screens/SignatureFirstScreen';
-import SignatureReturnScreen from './app/Screens/SignatureReturnScreen';
-import SettingsScreen from './app/Screens/SettingsScreen';
-import AddMaterialScreen from './app/Screens/AddMaterialScreen';
-import MaterialInventoryScreen from './app/Screens/MaterialInventoryScreen';
-import BiometricDBScreen from './app/Screens/BiometricDBScreen';
-import TransactionHistoryScreen from './app/Screens/TransactionHistoryScreen';
-import IncompleteProfilesScreen from './app/Screens/IncompleteProfilesScreen';
+// Écrans (Assurez-vous que le dossier s'appelle "screens" en minuscule sur GitHub)
+import HomeScreen from './app/screens/HomeScreen';
+import UserProfileListScreen from './app/screens/UserProfileListScreen';
+import UserProfileScreen from './app/screens/UserProfileScreen';
+import CreateProfileScreen from './app/screens/CreateProfileScreen';
+import RoomProfileScreen from './app/screens/RoomProfileScreen';
+import MaterialSelectionScreen from './app/screens/MaterialSelectionScreen';
+import MaterialListTakenScreen from './app/screens/MaterialListTakenScreen';
+import SignatureFirstScreen from './app/screens/SignatureFirstScreen';
+import SignatureReturnScreen from './app/screens/SignatureReturnScreen';
+import SettingsScreen from './app/screens/SettingsScreen';
+import AddMaterialScreen from './app/screens/AddMaterialScreen';
+import MaterialInventoryScreen from './app/screens/MaterialInventoryScreen';
+import BiometricDBScreen from './app/screens/BiometricDBScreen';
+import TransactionHistoryScreen from './app/screens/TransactionHistoryScreen';
+import IncompleteProfilesScreen from './app/screens/IncompleteProfilesScreen';
 
 const Stack = createNativeStackNavigator();
 
-// ── Error Boundary pour afficher l'erreur à l'écran ──────────────
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -56,25 +55,26 @@ const eb = StyleSheet.create({
   msg: { color: '#FFB3B3', fontSize: 14, fontWeight: '700', marginBottom: 16, backgroundColor: '#2a0000', padding: 12, borderRadius: 8 },
   stack: { color: '#888', fontSize: 11, fontFamily: 'monospace' },
 });
-// ─────────────────────────────────────────────────────────────────
 
 export default function App() {
   const [ready, setReady] = useState(false);
   const [dbError, setDbError] = useState(null);
 
   useEffect(() => {
-    (async () => {
+    let isMounted = true;
+    const prepareApp = async () => {
       try {
         await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
         await initDatabase();
-        setReady(true);
+        if (isMounted) setReady(true);
       } catch (e) {
-        setDbError(e);
+        if (isMounted) setDbError(e);
       }
-    })();
+    };
+    prepareApp();
+    return () => { isMounted = false; };
   }, []);
 
-  // Erreur base de données
   if (dbError) return (
     <ScrollView style={eb.container} contentContainerStyle={eb.content}>
       <Text style={eb.title}>🔴 ERREUR BASE DE DONNÉES</Text>
@@ -84,8 +84,9 @@ export default function App() {
   );
 
   if (!ready) return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF0F3' }}>
-      <ActivityIndicator size="large" color="#8B0000" />
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#8B0000' }}>
+      <ActivityIndicator size="large" color="#FFFFFF" />
+      <Text style={{ color: '#FFFFFF', marginTop: 15, fontFamily: 'serif', fontWeight: 'bold' }}>Chargement du système U-AUBEN...</Text>
     </View>
   );
 
@@ -114,18 +115,5 @@ export default function App() {
       </AppProvider>
     </ErrorBoundary>
   );
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  }
+                                          
